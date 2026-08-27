@@ -33,7 +33,7 @@ def env_int(name, default):
 load_local_env()
 
 SECRET_KEY = "dev-only-change-me"
-DEBUG = True
+DEBUG = env_bool("DEBUG", True)
 ALLOWED_HOSTS = ["127.0.0.1", "localhost", "testserver"]
 
 INSTALLED_APPS = [
@@ -112,6 +112,27 @@ STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# Uploaded media belongs in durable object storage on Render. Keep static files
+# on Django's existing filesystem/static deployment path.
+CLOUDINARY_CONFIGURED = bool(os.environ.get("CLOUDINARY_URL"))
+if CLOUDINARY_CONFIGURED:
+    INSTALLED_APPS.insert(INSTALLED_APPS.index("django.contrib.staticfiles"), "cloudinary_storage")
+    INSTALLED_APPS.append("cloudinary")
+    CLOUDINARY_STORAGE = {
+        "PREFIX": "phoenix-interior-hub",
+        "SECURE": True,
+    }
+    STORAGES = {
+        "default": {
+            "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+elif not DEBUG:
+    raise RuntimeError("CLOUDINARY_URL must be configured when DEBUG=False; uploaded media cannot use Render's local filesystem.")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "login"

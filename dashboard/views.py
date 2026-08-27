@@ -15,6 +15,7 @@ from accounts.models import AgentProfile, StaffProfile, UserProfile
 from accounts.decorators import user_role
 from accounts.forms import AdminLoginForm
 from catalog.models import Category, Product, ProductImage
+from catalog.signals import delete_stored_file_if_unreferenced
 from inventory.models import InventoryRecord, StockMovement
 from orders.models import Order, OrderItem
 from .forms import (
@@ -272,9 +273,12 @@ def category_form(request, category_id=None):
     if blocked:
         return blocked
     category = get_object_or_404(Category, pk=category_id) if category_id else None
+    previous_image_name = category.image.name if category and category.image else ""
     form = CategoryManageForm(request.POST or None, request.FILES or None, instance=category)
     if request.method == "POST" and form.is_valid():
         form.save()
+        if category and previous_image_name and category.image.name != previous_image_name:
+            delete_stored_file_if_unreferenced(previous_image_name, category.image.storage)
         messages.success(request, "Category saved.")
         return redirect("admin_categories")
     return render(request, "dashboard/admin/category_form.html", {"form": form, "category": category})
