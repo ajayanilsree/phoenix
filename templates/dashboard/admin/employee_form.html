@@ -1,0 +1,5 @@
+{% extends "base/dashboard.html" %}
+{% block title %}{% if managed_user %}Edit Employee{% else %}Add Employee{% endif %} | Phoenix Interior Hub{% endblock %}
+{% block heading %}{% if managed_user %}Edit Employee{% else %}Add Employee{% endif %}{% endblock %}
+{% block sidebar %}{% include "dashboard/admin/_sidebar.html" %}{% endblock %}
+{% block content %}<form class="management-form" method="post">{% csrf_token %}<section class="panel"><h2>Employee Account</h2><div class="form-grid">{% for field in form %}<label>{{ field.label }}{{ field }}{% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}{% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>{% endfor %}</div></section><button class="btn btn-primary" type="submit">Save Employee</button></form>{% endblock %}

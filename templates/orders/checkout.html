@@ -1,0 +1,64 @@
+{% extends "base/storefront.html" %}
+{% block title %}Checkout | Phoenix{% endblock %}
+{% block content %}
+<section class="page-hero compact"><div class="container"><p class="eyebrow">Checkout</p><h1>Confirm delivery details</h1></div></section>
+<section class="section">
+  <div class="container checkout-layout">
+    <form method="post" class="form-card">
+      {% csrf_token %}
+      <h2>Delivery &amp; Billing Address</h2>
+      {% for field in form %}
+        {% if field.field.widget.input_type == "checkbox" %}
+          <label class="check-row" for="{{ field.id_for_label }}">{{ field }}<span>{{ field.label }}</span></label>
+        {% else %}
+          <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+          {{ field }}
+        {% endif %}
+        {% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}
+      {% endfor %}
+      <h2>Payment method</h2>
+      <p class="decision-note">Payment gateway is modular and requires a confirmed provider before activation.</p>
+      <button class="btn btn-primary wide" type="submit">Place Order</button>
+    </form>
+    <aside class="summary-card">
+      <h2>Order summary</h2>
+      {% for item in cart.items.all %}<p><span>{{ item.product.name }} x {{ item.quantity }}</span><strong>₹{{ item.line_total }}</strong></p>{% endfor %}
+      <hr>
+      <p><span>Subtotal</span><strong>₹{{ summary.subtotal }}</strong></p>
+      <div class="promo-box">
+        {% if summary.promo %}
+          <div class="promo-applied">
+            <div>
+              <span>{{ summary.promo_code }} applied</span>
+              <strong>{{ summary.discount_percentage|floatformat:2 }}% Agent Discount</strong>
+            </div>
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="remove_promo">
+              <button class="text-button" type="submit">Remove</button>
+            </form>
+          </div>
+        {% else %}
+          <form method="post" class="promo-form">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="apply_promo">
+            <label for="{{ promo_form.promo_code.id_for_label }}">Have a promo code?</label>
+            <div>
+              {{ promo_form.promo_code }}
+              <button class="btn btn-secondary compact-btn" type="submit">Apply</button>
+            </div>
+          </form>
+        {% endif %}
+      </div>
+      {% if summary.promo %}
+        <p class="discount-line"><span>Agent Promo ({{ summary.discount_percentage|floatformat:2 }}%)</span><strong>-₹{{ summary.discount_amount }}</strong></p>
+        <p><span>Discounted Subtotal</span><strong>₹{{ summary.discounted_subtotal }}</strong></p>
+      {% endif %}
+      <p><span>Delivery</span><em>Requires rule</em></p>
+      <p><span>Tax</span><em>Requires rule</em></p>
+      <hr>
+      <p><span>Grand Total</span><strong>₹{{ summary.grand_total }}</strong></p>
+    </aside>
+  </div>
+</section>
+{% endblock %}

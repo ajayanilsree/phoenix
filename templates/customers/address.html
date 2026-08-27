@@ -1,0 +1,32 @@
+{% extends "base/dashboard.html" %}
+{% block title %}My Address | Phoenix{% endblock %}
+{% block heading %}My Address{% endblock %}
+{% block sidebar %}<a href="{% url 'customer_dashboard' %}">Overview</a><a href="{% url 'shop' %}">Shop</a><a href="{% url 'customer_orders' %}">My Orders</a><a href="{% url 'customer_profile' %}">Profile</a><a href="{% url 'customer_address' %}">Address</a>{% endblock %}
+{% block content %}
+{% if saved_address and not is_editing %}
+  <section class="panel address-panel">
+    <h2>My Address</h2>
+    <div class="address-display">
+      <strong>{{ saved_address.full_name }}</strong>
+      <span>{{ saved_address.phone }}</span>
+      <span>{{ saved_address.line1 }}</span>
+      {% if saved_address.line2 %}<span>{{ saved_address.line2 }}</span>{% endif %}
+      <span>{{ saved_address.city }}, {{ saved_address.district }}</span>
+      <span>{{ saved_address.state }} - {{ saved_address.postal_code }}</span>
+      <span>{{ saved_address.country }}</span>
+    </div>
+    <a class="btn btn-secondary" href="{% url 'customer_address' %}?edit=1">Edit Address</a>
+  </section>
+{% else %}
+  <form method="post" class="form-card">
+    {% csrf_token %}
+    <h2>{% if saved_address %}Edit Delivery Address{% else %}Add Delivery Address{% endif %}</h2>
+    {% for field in form %}
+      <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+      {{ field }}
+      {% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}
+    {% endfor %}
+    <button class="btn btn-primary wide" type="submit">{% if saved_address %}Update Address{% else %}Save Address{% endif %}</button>
+  </form>
+{% endif %}
+{% endblock %}

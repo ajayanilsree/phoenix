@@ -1,0 +1,5 @@
+{% extends "base/dashboard.html" %}
+{% block title %}{% if category %}Edit Category{% else %}Add Category{% endif %} | Phoenix Interior Hub{% endblock %}
+{% block heading %}{% if category %}Edit Category{% else %}Add Category{% endif %}{% endblock %}
+{% block sidebar %}{% include "dashboard/admin/_sidebar.html" %}{% endblock %}
+{% block content %}<form class="management-form" method="post" enctype="multipart/form-data">{% csrf_token %}<section class="panel"><h2>Category Details</h2><div class="form-grid">{% for field in form %}<label>{{ field.label }}{{ field }}{% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>{% endfor %}</div></section><button class="btn btn-primary" type="submit">Save Category</button></form>{% endblock %}

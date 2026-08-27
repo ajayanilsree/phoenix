@@ -1,0 +1,4 @@
+{% extends "base/dashboard.html" %}
+{% block heading %}Profile{% endblock %}
+{% block sidebar %}<a href="{% url 'customer_dashboard' %}">Overview</a><a href="{% url 'shop' %}">Shop</a><a href="{% url 'customer_orders' %}">My Orders</a><a href="{% url 'customer_profile' %}">Profile</a><a href="{% url 'customer_address' %}">Address</a>{% endblock %}
+{% block content %}<section class="panel"><h2>Account details</h2><p>{{ request.user.get_full_name|default:request.user.username }}</p><p>{{ request.user.email }}</p></section><section class="panel"><h2>Saved Address</h2><a class="btn btn-secondary" href="{% url 'customer_address' %}">Manage Address</a></section>{% endblock %}

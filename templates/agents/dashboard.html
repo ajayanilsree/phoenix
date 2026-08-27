@@ -1,0 +1,13 @@
+{% extends "base/dashboard.html" %}
+{% block title %}Agent Dashboard | Phoenix{% endblock %}
+{% block heading %}Agent Dashboard{% endblock %}
+{% block sidebar %}{% include "agents/_sidebar.html" %}{% endblock %}
+{% block content %}
+<div class="stat-grid"><div class="stat-card"><span>Promo Code</span><strong>{{ agent_profile.agent_code|default:"Pending" }}</strong></div><div class="stat-card"><span>Discount %</span><strong>{{ agent_profile.discount_percentage|default:0|floatformat:2 }}%</strong></div><div class="stat-card"><span>Orders Using Code</span><strong>{{ orders_using_code }}</strong></div><div class="stat-card"><span>Total Sales Through Code</span><strong>₹{{ total_sales_through_code }}</strong></div></div>
+<section class="panel">
+  <h2>Customer / order lookup</h2>
+  <form class="inline-form" method="get"><input name="q" value="{{ query }}" placeholder="Order number or customer email"><button class="btn btn-primary">Search</button></form>
+  {% if query %}<p class="muted">Results are limited to orders related to this agent.</p>{% include "dashboard/order_table.html" with orders=lookup_results %}{% endif %}
+</section>
+<section class="panel"><h2>Order history</h2>{% include "dashboard/order_table.html" %}</section>
+{% endblock %}

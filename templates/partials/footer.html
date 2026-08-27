@@ -1,0 +1,37 @@
+{% load static %}
+<footer class="site-footer" id="contact">
+  <div class="container footer-grid">
+    <div>
+      <img class="footer-logo" src="{% static 'img/phoenix-logo-blue.png' %}" alt="Phoenix Interior Hub">
+      <h3>PHOENIX INTERIOR HUB</h3>
+      <p>Premium PVC, WPC and decorative interior material solutions for modern homes, offices and commercial spaces.</p>
+    </div>
+    <div>
+      <h3>Shop</h3>
+      <a href="{% url 'shop_catalogue_main' main_slug='boards-panels' %}">Boards &amp; Panels</a>
+      <a href="{% url 'shop_catalogue_main' main_slug='kitchen-fittings-accessories' %}">Kitchen Fittings &amp; Accessories</a>
+      <a href="{% url 'shop_catalogue_main' main_slug='wardrobe-bed-fittings' %}">Wardrobe &amp; Bed Fittings</a>
+      <a href="{% url 'shop_catalogue_main' main_slug='modular-furniture' %}">Modular Furniture</a>
+      <a href="{% url 'shop_catalogue_main' main_slug='others' %}">Others</a>
+    </div>
+    <div>
+      <h3>Quick Links</h3>
+      <a href="{% url 'home' %}">Home</a>
+      <a href="{% url 'shop' %}">Shop</a>
+      <a href="{% url 'home' %}#about">About Us</a>
+      <a href="#contact">Contact Us</a>
+      <a href="{% url 'post_login_redirect' %}">My Account</a>
+      <a href="{% url 'cart_detail' %}">Cart</a>
+    </div>
+    <div>
+      <h3>Customer Support</h3>
+      <p>+91 7907705353<br>+91 8921996547</p>
+      <p><a href="mailto:phoenixinteriorhub@gmail.com">phoenixinteriorhub@gmail.com</a></p>
+      <p>Cherukulam, Aryanad, Thiruvananthapuram, Kerala</p>
+    </div>
+  </div>
+  <div class="container footer-bottom">
+    <span>© Phoenix Interior Hub. All Rights Reserved.</span>
+    <span>Privacy Policy · Terms & Conditions</span>
+  </div>
+</footer>

@@ -1,0 +1,9 @@
+{% extends "base/dashboard.html" %}
+{% block title %}Employee Dashboard | Phoenix{% endblock %}
+{% block heading %}Employee Dashboard{% endblock %}
+{% block sidebar %}{% include "staff_portal/_sidebar.html" %}{% endblock %}
+{% block content %}
+<div class="stat-grid"><div class="stat-card"><span>Pending Orders</span><strong>{{ pending_orders }}</strong></div><div class="stat-card"><span>Processing Orders</span><strong>{{ processing_orders }}</strong></div><div class="stat-card"><span>Orders Today</span><strong>{{ orders_today }}</strong></div><div class="stat-card"><span>Low Stock Products</span><strong>{{ low_stock_count }}</strong></div><div class="stat-card"><span>Products</span><strong>{{ product_count }}</strong></div></div>
+<section class="panel"><h2>Orders needing attention</h2>{% include "staff_portal/order_ops_table.html" %}</section>
+<section class="panel"><h2>Low stock</h2><div class="table-wrap"><table><thead><tr><th>SKU</th><th>Product</th><th>Stock</th><th>Status</th></tr></thead><tbody>{% for record in low_stock %}<tr><td>{{ record.product.sku }}</td><td>{{ record.product.name }}</td><td>{{ record.current_stock }}</td><td><span class="badge warning">Low</span></td></tr>{% empty %}<tr><td colspan="4">No low stock alerts.</td></tr>{% endfor %}</tbody></table></div></section>
+{% endblock %}

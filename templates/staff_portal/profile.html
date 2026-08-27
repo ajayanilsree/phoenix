@@ -1,0 +1,5 @@
+{% extends "base/dashboard.html" %}
+{% block title %}Employee Profile | Phoenix{% endblock %}
+{% block heading %}Profile{% endblock %}
+{% block sidebar %}{% include "staff_portal/_sidebar.html" %}{% endblock %}
+{% block content %}<section class="panel"><h2>{{ request.user.get_full_name|default:request.user.username }}</h2><div class="detail-grid"><p><span>Username</span><strong>{{ request.user.username }}</strong></p><p><span>Email</span><strong>{{ request.user.email|default:"-" }}</strong></p><p><span>Phone</span><strong>{{ request.user.profile.phone|default:"-" }}</strong></p><p><span>Status</span><strong>{{ request.user.is_active|yesno:"Active,Inactive" }}</strong></p></div></section>{% endblock %}

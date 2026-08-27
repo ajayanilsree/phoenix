@@ -1,0 +1,25 @@
+{% extends "base/dashboard.html" %}
+{% block title %}Admin Dashboard | Phoenix{% endblock %}
+{% block heading %}Admin Dashboard{% endblock %}
+{% block sidebar %}
+{% include "dashboard/admin/_sidebar.html" %}
+{% endblock %}
+{% block content %}
+<div class="stat-grid">
+  <div class="stat-card"><span>Total Revenue</span><strong>₹{{ total_revenue }}</strong></div>
+  <div class="stat-card"><span>Total Orders</span><strong>{{ total_orders }}</strong></div>
+  <div class="stat-card"><span>Pending Orders</span><strong>{{ pending_orders }}</strong></div>
+  <div class="stat-card"><span>Completed Orders</span><strong>{{ completed_orders }}</strong></div>
+  <div class="stat-card"><span>Customers</span><strong>{{ customer_count }}</strong></div>
+  <div class="stat-card"><span>Employees</span><strong>{{ employee_count }}</strong></div>
+  <div class="stat-card"><span>Agents</span><strong>{{ agent_count }}</strong></div>
+  <div class="stat-card"><span>Total Products</span><strong>{{ active_product_count }}</strong></div>
+  <div class="stat-card"><span>Low Stock</span><strong>{{ low_stock_count }}</strong></div>
+  <div class="stat-card"><span>Featured Products</span><strong>{{ featured_count }}</strong></div>
+  <div class="stat-card"><span>Trending Materials</span><strong>{{ trending_count }}</strong></div>
+</div>
+<section class="panel"><h2>Recent orders</h2>{% include "dashboard/order_table.html" with orders=recent_orders show_details=True %}</section>
+<section class="panel"><h2>Low stock alerts</h2><div class="table-wrap"><table><thead><tr><th>SKU</th><th>Product</th><th>Stock</th></tr></thead><tbody>{% for record in low_stock %}<tr><td>{{ record.product.sku }}</td><td>{{ record.product.name }}</td><td>{{ record.current_stock }}</td></tr>{% empty %}<tr><td colspan="3">No low stock alerts.</td></tr>{% endfor %}</tbody></table></div></section>
+<section class="panel"><h2>Recently added products</h2><div class="table-wrap"><table><thead><tr><th>SKU</th><th>Product</th><th>Category</th><th>Status</th></tr></thead><tbody>{% for product in recent_products %}<tr><td>{{ product.sku }}</td><td>{{ product.name }}</td><td>{{ product.category.name }}</td><td><span class="badge">{{ product.is_active|yesno:"Active,Inactive" }}</span></td></tr>{% empty %}<tr><td colspan="4">No products yet.</td></tr>{% endfor %}</tbody></table></div></section>
+<section class="panel"><h2>Recent customers</h2><div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Joined</th></tr></thead><tbody>{% for customer in recent_customers %}<tr><td>{{ customer.get_full_name|default:customer.username }}</td><td>{{ customer.email }}</td><td>{{ customer.date_joined|date:"M d, Y" }}</td></tr>{% empty %}<tr><td colspan="3">No customers yet.</td></tr>{% endfor %}</tbody></table></div></section>
+{% endblock %}

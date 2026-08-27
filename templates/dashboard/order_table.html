@@ -1,0 +1,10 @@
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Order</th><th>Customer</th><th>Date</th><th>Amount</th><th>Payment</th><th>Status</th>{% if show_details %}<th>Details</th>{% endif %}</tr></thead>
+    <tbody>
+      {% for order in orders %}
+        <tr><td>{{ order.order_number }}</td><td>{{ order.customer.email }}</td><td>{{ order.created_at|date:"M d, Y" }}</td><td>₹{{ order.grand_total }}</td><td>{{ order.get_payment_status_display }}</td><td><span class="badge">{{ order.get_status_display }}</span></td>{% if show_details %}<td><a class="btn btn-ghost compact-btn" href="{% url 'admin_order_detail' order.order_number %}">Details</a></td>{% endif %}</tr>
+      {% empty %}<tr><td colspan="{% if show_details %}7{% else %}6{% endif %}">No orders yet.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>

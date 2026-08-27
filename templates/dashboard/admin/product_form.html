@@ -1,0 +1,51 @@
+{% extends "base/dashboard.html" %}
+{% block title %}{% if product %}Edit Product{% else %}Add Product{% endif %} | Phoenix Interior Hub{% endblock %}
+{% block heading %}{% if product %}Edit Product{% else %}Add Product{% endif %}{% endblock %}
+{% block sidebar %}{% include "dashboard/admin/_sidebar.html" %}{% endblock %}
+{% block content %}
+<form class="management-form" method="post" enctype="multipart/form-data">{% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+  <section class="panel"><h2>Basic Information</h2><div class="form-grid">
+    <label>{{ form.name.label }}{{ form.name }}{% for error in form.name.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>
+    <label>{{ form.sku.label }}{{ form.sku }}{% for error in form.sku.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>
+    <label>{{ form.category.label }}{{ form.category }}{% for error in form.category.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>
+    <label>{{ form.subcategory.label }}{{ form.subcategory }}{% for error in form.subcategory.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>
+    <label>{{ form.full_description.label }}{{ form.full_description }}{% for error in form.full_description.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>
+    <label>{{ form.unit_type.label }}{{ form.unit_type }}{% for error in form.unit_type.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>
+    <label>{{ form.size.label }}{{ form.size }}{% for error in form.size.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>
+    <label>{{ form.thickness.label }}{{ form.thickness }}{% for error in form.thickness.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>
+    <label>{{ form.colour.label }}{{ form.colour }}{% for error in form.colour.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>
+    <label>{{ form.finish.label }}{{ form.finish }}{% for error in form.finish.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>
+    <label>{{ form.features.label }}{{ form.features }}{% for error in form.features.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>
+    <label>{{ form.applications.label }}{{ form.applications }}{% for error in form.applications.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>
+  </div></section>
+  <section class="panel"><h2>Pricing</h2><div class="form-grid"><label>{{ form.compare_at_price.label }}{{ form.compare_at_price }}{% for error in form.compare_at_price.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label><label>{{ form.price.label }}{{ form.price }}{% for error in form.price.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label></div></section>
+  <section class="panel"><h2>Images</h2><p class="muted">Upload up to 4 product images. Existing images stay attached.</p><input type="file" name="images" accept=".jpg,.jpeg,.png,.webp" multiple>{% if product %}<div class="image-preview-row">{% for image in product.images.all %}{% if image.image %}<img src="{{ image.image.url }}" alt="{{ image.alt_text|default:product.name }}">{% endif %}{% empty %}<span class="muted">No images yet.</span>{% endfor %}</div>{% endif %}</section>
+  <section class="panel"><h2>Inventory</h2><div class="form-grid"><label>{{ form.stock.label }}{{ form.stock }}</label><label>{{ form.low_stock_threshold.label }}{{ form.low_stock_threshold }}</label></div></section>
+  <button class="btn btn-primary" type="submit">Save Product</button>
+</form>
+<script id="subcategory-options" type="application/json">{{ subcategory_options_json|safe }}</script>
+<script>
+  (() => {
+    const category = document.getElementById("id_category");
+    const subcategory = document.getElementById("id_subcategory");
+    const dataElement = document.getElementById("subcategory-options");
+    if (!category || !subcategory || !dataElement) return;
+    const options = JSON.parse(dataElement.textContent || "{}");
+    const selected = subcategory.value;
+    const render = () => {
+      const choices = options[category.value] || [];
+      subcategory.innerHTML = "";
+      choices.forEach((choice) => {
+        const option = document.createElement("option");
+        option.value = choice.id;
+        option.textContent = choice.name;
+        if (String(choice.id) === selected) option.selected = true;
+        subcategory.appendChild(option);
+      });
+    };
+    category.addEventListener("change", render);
+    render();
+  })();
+</script>
+{% endblock %}

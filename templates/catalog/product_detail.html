@@ -1,0 +1,63 @@
+{% extends "base/storefront.html" %}
+{% block title %}{{ product.name }} | Phoenix{% endblock %}
+{% block content %}
+<section class="section product-detail">
+  <div class="container product-detail-grid">
+    <div class="gallery">
+      <div class="main-image">
+        {% if product.primary_image and product.primary_image.image %}
+          <img src="{{ product.primary_image.image.url }}" alt="{{ product.primary_image.alt_text|default:product.name }}">
+        {% else %}
+          <span>{{ product.category.name }}</span>
+        {% endif %}
+      </div>
+      <div class="thumb-row">
+        {% for image in product.images.all %}
+          {% if image.image %}<span><img src="{{ image.image.url }}" alt="{{ image.alt_text|default:product.name }}"></span>{% endif %}
+        {% empty %}<span>Image pending</span>{% endfor %}
+      </div>
+    </div>
+    <div class="purchase-panel">
+      <p class="eyebrow">{{ product.category.name }}</p>
+      <h1>{{ product.name }}</h1>
+      <p class="sku">SKU {{ product.sku }}</p>
+      <div class="detail-price">
+        {% if product.has_discount %}<span>₹{{ product.compare_at_price }}</span>{% endif %}
+        <strong>₹{{ product.price }}</strong>
+        <small>/ {{ product.get_unit_type_display }}</small>
+        {% if product.discount_percent %}<em>{{ product.discount_percent }}% OFF</em>{% endif %}
+      </div>
+      <p class="stock">Availability: {% if product.inventory.current_stock > 0 %}In stock{% else %}Out of stock{% endif %}</p>
+      <form action="{% url 'add_to_cart' product.id %}" method="post" class="buy-form">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        {% if product.variants.exists %}
+          <label>Variant</label>
+          <select name="variant">
+            {% for variant in product.variants.all %}<option value="{{ variant.id }}">{{ variant.name }} {% if variant.size %}- {{ variant.size }}{% endif %}</option>{% endfor %}
+          </select>
+        {% endif %}
+        <div class="spec-grid">
+          {% if product.size %}<span><strong>Size</strong>{{ product.size }}</span>{% endif %}
+          {% if product.thickness %}<span><strong>Thickness</strong>{{ product.thickness }}</span>{% endif %}
+          {% if product.finish %}<span><strong>Finish</strong>{{ product.finish }}</span>{% endif %}
+          {% if product.colour %}<span><strong>Colour</strong>{{ product.colour }}</span>{% endif %}
+        </div>
+        <label>Quantity</label>
+        <input type="number" name="quantity" min="1" value="1">
+        <button class="btn btn-primary wide" type="submit">Add to Cart</button>
+        <button class="btn btn-secondary wide" type="submit" formaction="{% url 'add_to_cart' product.id %}">Buy Now</button>
+      </form>
+    </div>
+  </div>
+  <div class="container detail-tabs">
+    <section><h2>Description</h2><p>{{ product.full_description|default:product.short_description }}</p></section>
+    <section><h2>Specifications</h2><dl>{% for key, value in product.specifications.items %}<dt>{{ key }}</dt><dd>{{ value }}</dd>{% empty %}<dt>Status</dt><dd>Detailed specs require final business data.</dd>{% endfor %}</dl></section>
+    <section><h2>Features</h2><p>{{ product.features|linebreaksbr|default:"Feature details can be added by product managers." }}</p></section>
+    <section><h2>Applications</h2><p>{{ product.applications|linebreaksbr|default:"Suitable applications can be configured per product." }}</p></section>
+    <section><h2>Shipping</h2><p>Delivery charge, tax and shipping-zone rules require final Phoenix business approval.</p></section>
+  </div>
+  <div class="container section-head"><div><p class="eyebrow">Related</p><h2>Similar products</h2></div></div>
+  <div class="container product-grid">{% for product in related_products %}{% include "partials/product_card.html" %}{% endfor %}</div>
+</section>
+{% endblock %}

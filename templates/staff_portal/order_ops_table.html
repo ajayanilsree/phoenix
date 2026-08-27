@@ -1,0 +1,13 @@
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Order</th><th>Customer</th><th>Amount</th><th>Status</th><th>Update</th></tr></thead>
+    <tbody>
+      {% for order in orders %}
+        <tr>
+          <td>{{ order.order_number }}</td><td>{{ order.customer.email }}</td><td>₹{{ order.grand_total }}</td><td><span class="badge">{{ order.get_status_display }}</span></td>
+          <td><form method="post" action="{% url 'staff_update_order_status' order.order_number %}" class="table-form">{% csrf_token %}<select name="status">{% for value,label in order.STATUS_CHOICES %}<option value="{{ value }}" {% if order.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select><button>Save</button></form></td>
+        </tr>
+      {% empty %}<tr><td colspan="5">No orders yet.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>

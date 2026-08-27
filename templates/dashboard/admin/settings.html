@@ -1,0 +1,5 @@
+{% extends "base/dashboard.html" %}
+{% block title %}Settings | Phoenix Interior Hub{% endblock %}
+{% block heading %}Settings{% endblock %}
+{% block sidebar %}{% include "dashboard/admin/_sidebar.html" %}{% endblock %}
+{% block content %}<section class="panel"><h2>Business Settings</h2><p class="muted">Editable business settings can be added here after Phoenix confirms which values should be managed by staff. Secrets such as API keys, database passwords and secret keys remain environment variables.</p><div class="detail-grid"><p><span>Store Name</span><strong>Phoenix Interior Hub</strong></p><p><span>Support Email</span><strong>phoenixinteriorhub@gmail.com</strong></p><p><span>WhatsApp</span><strong>+91 8921996547</strong></p></div></section>{% endblock %}

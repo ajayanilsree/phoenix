@@ -1,0 +1,5 @@
+{% extends "base/dashboard.html" %}
+{% block title %}Employee Customers | Phoenix{% endblock %}
+{% block heading %}Customers{% endblock %}
+{% block sidebar %}{% include "staff_portal/_sidebar.html" %}{% endblock %}
+{% block content %}<section class="panel"><h2>Customer Delivery Details</h2><div class="table-wrap"><table><thead><tr><th>Order</th><th>Customer</th><th>Email</th><th>Phone</th><th>Delivery</th></tr></thead><tbody>{% for order in orders %}<tr><td>{{ order.order_number }}</td><td>{{ order.customer.get_full_name|default:order.customer.username }}</td><td>{{ order.customer.email }}</td><td>{{ order.shipping_address.phone|default:"-" }}</td><td>{% if order.shipping_address %}{{ order.shipping_address.city }}, {{ order.shipping_address.state }}{% else %}-{% endif %}</td></tr>{% empty %}<tr><td colspan="5">No customer delivery records yet.</td></tr>{% endfor %}</tbody></table></div></section>{% endblock %}

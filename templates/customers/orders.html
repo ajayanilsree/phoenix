@@ -1,0 +1,4 @@
+{% extends "base/dashboard.html" %}
+{% block heading %}My Orders{% endblock %}
+{% block sidebar %}<a href="{% url 'customer_dashboard' %}">Overview</a><a href="{% url 'shop' %}">Shop</a><a href="{% url 'customer_orders' %}">My Orders</a><a href="{% url 'customer_profile' %}">Profile</a><a href="{% url 'customer_address' %}">Address</a>{% endblock %}
+{% block content %}<section class="panel">{% include "customers/order_table.html" %}</section>{% endblock %}

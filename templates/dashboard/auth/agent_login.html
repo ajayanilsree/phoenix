@@ -1,0 +1,44 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agent Login | Phoenix</title>
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}?v=20260827-7">
+</head>
+<body class="role-auth-body">
+  <main class="role-auth-page">
+    <form method="post" class="role-auth-card">
+      {% csrf_token %}
+      <img src="{% static 'img/phoenix-logo-blue.png' %}" alt="Phoenix Interior Hub">
+      <p class="eyebrow">Agent Portal</p>
+      <h1>Agent Login</h1>
+      {% for field in form %}
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {% if field.name == "password" %}
+          <div class="password-field">
+            {{ field }}
+            <button type="button" data-password-toggle aria-label="Show password">Show</button>
+          </div>
+        {% else %}
+          {{ field }}
+        {% endif %}
+        {% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}
+      {% endfor %}
+      {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+      <button class="btn btn-primary wide" type="submit">Login</button>
+    </form>
+  </main>
+  <script>
+    document.querySelectorAll("[data-password-toggle]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const input = button.parentElement.querySelector("input");
+        const show = input.type === "password";
+        input.type = show ? "text" : "password";
+        button.textContent = show ? "Hide" : "Show";
+      });
+    });
+  </script>
+</body>
+</html>

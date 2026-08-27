@@ -1,0 +1,32 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Phoenix Interior Hub{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}Premium PVC, WPC, bamboo charcoal and interior material products from Phoenix Interior Hub.{% endblock %}">
+  <link rel="preload" as="image" href="{% static 'img/phoenix-logo-blue.png' %}">
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}?v=20260827-8">
+  <script defer src="{% static 'js/site.js' %}?v=20260827-2"></script>
+</head>
+<body class="preloader-active">
+  <div id="phoenix-preloader" aria-hidden="true">
+    <div class="phoenix-loader-content">
+      <img src="{% static 'img/phoenix-logo-blue.png' %}" class="phoenix-loader-logo" alt="Phoenix">
+      <div class="phoenix-loader-track">
+        <div class="phoenix-loader-progress"></div>
+      </div>
+    </div>
+  </div>
+  {% include "partials/header.html" %}
+  {% if messages %}
+    <div class="messages container">
+      {% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}
+    </div>
+  {% endif %}
+  <main>{% block content %}{% endblock %}</main>
+  {% include "partials/footer.html" %}
+  {% include "partials/chatbot.html" %}
+</body>
+</html>

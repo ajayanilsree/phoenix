@@ -1,0 +1,35 @@
+{% load static %}
+{% if CHATBOT_ENABLED %}
+<section class="phoenix-chatbot" data-chatbot data-endpoint="{% url 'chatbot_message' %}" data-csrf="{{ csrf_token }}" aria-label="Phoenix Assistant">
+  <div class="chatbot-nudge" data-chatbot-nudge>Need help finding a product?</div>
+  <button class="chatbot-launcher" type="button" aria-label="Open Phoenix Assistant" aria-expanded="false" data-chatbot-launcher>
+    <span aria-hidden="true"></span>
+  </button>
+  <div class="chatbot-panel" role="dialog" aria-modal="false" aria-labelledby="chatbot-title" hidden data-chatbot-panel>
+    <div class="chatbot-header">
+      <div>
+        <h2 id="chatbot-title">Phoenix Assistant</h2>
+        <p>AI Shopping Assistant</p>
+      </div>
+      <button class="chatbot-close" type="button" aria-label="Close Phoenix Assistant" data-chatbot-close>&times;</button>
+    </div>
+    <div class="chatbot-messages" data-chatbot-messages aria-live="polite"></div>
+    <div class="chatbot-suggestions" aria-label="Suggested actions">
+      <button type="button" data-chatbot-action data-message="Shop Products" data-url="{% url 'shop' %}">Shop Products</button>
+      <button type="button" data-chatbot-action data-message="Find a Product">Find a Product</button>
+      <button type="button" data-chatbot-action data-message="Boards & Panels" data-url="/shop/boards-panels/">Boards &amp; Panels</button>
+      <button type="button" data-chatbot-action data-message="Kitchen Fittings" data-url="/shop/kitchen-fittings-accessories/">Kitchen Fittings</button>
+      <button type="button" data-chatbot-action data-message="Modular Furniture" data-url="/shop/modular-furniture/">Modular Furniture</button>
+      <button type="button" data-chatbot-action data-message="Track My Order" data-url="{% url 'customer_orders' %}">Track My Order</button>
+      <button type="button" data-chatbot-action data-message="Contact Phoenix" data-url="/#contact">Contact Phoenix</button>
+    </div>
+    <form class="chatbot-form" data-chatbot-form>
+      <label class="sr-only" for="chatbot-input">Ask about our products</label>
+      <textarea id="chatbot-input" name="message" rows="1" maxlength="750" placeholder="Ask about our products..." data-chatbot-input></textarea>
+      <button type="submit" aria-label="Send message" data-chatbot-send>
+        <span aria-hidden="true">&gt;</span>
+      </button>
+    </form>
+  </div>
+</section>
+{% endif %}

@@ -1,0 +1,6 @@
+<a href="{% url 'agent_dashboard' %}">Dashboard</a>
+<a href="{% url 'agent_shop' %}">Shop</a>
+<a href="{% url 'agent_orders' %}">My Orders</a>
+<a href="{% url 'agent_customers' %}">Customers</a>
+<a href="{% url 'agent_profile' %}">Profile</a>
+<form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Logout</button></form>

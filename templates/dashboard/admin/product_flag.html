@@ -1,0 +1,14 @@
+{% extends "base/dashboard.html" %}
+{% block title %}{% if mode == "featured" %}Featured Products{% else %}Trending Materials{% endif %} | Phoenix Interior Hub{% endblock %}
+{% block heading %}{% if mode == "featured" %}Featured Products{% else %}Trending Materials{% endif %}{% endblock %}
+{% block sidebar %}{% include "dashboard/admin/_sidebar.html" %}{% endblock %}
+{% block content %}
+<section class="panel">
+  <h2>Currently {% if mode == "featured" %}Featured{% else %}Trending{% endif %}</h2>
+  <div class="table-wrap"><table><thead><tr><th>Product</th><th>SKU</th><th>Category</th><th>Order</th><th>Action</th></tr></thead><tbody>{% for product in selected %}<tr><td>{{ product.name }}</td><td>{{ product.sku }}</td><td>{{ product.category.name }}</td><td>{% if mode == "featured" %}{{ product.featured_order }}{% else %}{{ product.trending_order }}{% endif %}</td><td><form method="post">{% csrf_token %}<input type="hidden" name="product_id" value="{{ product.id }}"><input type="hidden" name="action" value="remove"><button class="btn btn-ghost compact-btn" type="submit">Remove</button></form></td></tr>{% empty %}<tr><td colspan="5">No {% if mode == "featured" %}featured products{% else %}trending materials{% endif %} selected.</td></tr>{% endfor %}</tbody></table></div>
+</section>
+<section class="panel">
+  <h2>Add {% if mode == "featured" %}Featured Products{% else %}Trending Product{% endif %}</h2>
+  <div class="table-wrap"><table><thead><tr><th>Product</th><th>SKU</th><th>Category</th><th>Action</th></tr></thead><tbody>{% for product in available %}<tr><td>{{ product.name }}</td><td>{{ product.sku }}</td><td>{{ product.category.name }}</td><td><form method="post">{% csrf_token %}<input type="hidden" name="product_id" value="{{ product.id }}"><input type="hidden" name="action" value="add"><button class="btn btn-primary compact-btn" type="submit">Add</button></form></td></tr>{% empty %}<tr><td colspan="4">No available active products.</td></tr>{% endfor %}</tbody></table></div>
+</section>
+{% endblock %}

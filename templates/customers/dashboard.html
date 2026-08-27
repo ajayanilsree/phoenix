@@ -1,0 +1,8 @@
+{% extends "base/dashboard.html" %}
+{% block title %}Customer Dashboard | Phoenix{% endblock %}
+{% block heading %}My Account{% endblock %}
+{% block sidebar %}<a href="{% url 'customer_dashboard' %}">Overview</a><a href="{% url 'shop' %}">Shop</a><a href="{% url 'customer_orders' %}">My Orders</a><a href="{% url 'customer_profile' %}">Profile</a><a href="{% url 'customer_address' %}">Address</a><form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Logout</button></form>{% endblock %}
+{% block content %}
+<div class="stat-grid"><div class="stat-card"><span>Pending Orders</span><strong>{{ pending_orders }}</strong></div><div class="stat-card"><span>Completed Orders</span><strong>{{ completed_orders }}</strong></div><div class="stat-card"><span>Account</span><strong>Active</strong></div></div>
+<section class="panel"><h2>Recent orders</h2>{% include "customers/order_table.html" with orders=recent_orders %}</section>
+{% endblock %}

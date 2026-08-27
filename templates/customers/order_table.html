@@ -1,0 +1,10 @@
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Order</th><th>Date</th><th>Total</th><th>Payment</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      {% for order in orders %}
+        <tr><td>{{ order.order_number }}</td><td>{{ order.created_at|date:"M d, Y" }}</td><td>₹{{ order.grand_total }}</td><td>{{ order.get_payment_status_display }}</td><td><span class="badge">{{ order.get_status_display }}</span></td><td><a href="{% url 'customer_order_detail' order.order_number %}">Details</a></td></tr>
+      {% empty %}<tr><td colspan="6">No orders yet.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>

@@ -1,0 +1,7 @@
+<a href="{% url 'employee_dashboard' %}">Dashboard</a>
+<a href="{% url 'employee_orders' %}">Orders</a>
+<a href="{% url 'employee_products' %}">Products</a>
+<a href="{% url 'employee_inventory' %}">Inventory</a>
+<a href="{% url 'employee_customers' %}">Customers</a>
+<a href="{% url 'employee_profile' %}">Profile</a>
+<form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Logout</button></form>

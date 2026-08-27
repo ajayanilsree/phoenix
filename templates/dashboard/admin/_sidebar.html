@@ -1,0 +1,13 @@
+<a href="{% url 'admin_dashboard' %}">Dashboard</a>
+<a href="{% url 'admin_orders' %}">Orders</a>
+<a href="{% url 'admin_products' %}">Products</a>
+<a href="{% url 'admin_categories' %}">Categories</a>
+<a href="{% url 'admin_inventory' %}">Inventory</a>
+<a href="{% url 'admin_featured_products' %}">Featured Products</a>
+<a href="{% url 'admin_trending_materials' %}">Trending Materials</a>
+<a href="{% url 'admin_customers' %}">Customers</a>
+<a href="{% url 'admin_employees' %}">Employees</a>
+<a href="{% url 'admin_agents' %}">Agents</a>
+<a href="{% url 'admin_analytics' %}">Analytics</a>
+<a href="{% url 'admin_settings' %}">Settings</a>
+<form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Logout</button></form>

@@ -1,0 +1,5 @@
+{% extends "base/dashboard.html" %}
+{% block title %}Customer | Phoenix Interior Hub{% endblock %}
+{% block heading %}Customer Detail{% endblock %}
+{% block sidebar %}{% include "dashboard/admin/_sidebar.html" %}{% endblock %}
+{% block content %}<section class="panel"><h2>{{ customer.get_full_name|default:customer.username }}</h2><div class="detail-grid"><p><span>Username</span><strong>{{ customer.username }}</strong></p><p><span>Email</span><strong>{{ customer.email|default:"-" }}</strong></p><p><span>Phone</span><strong>{{ customer.profile.phone|default:"-" }}</strong></p><p><span>Status</span><strong>{{ customer.is_active|yesno:"Active,Inactive" }}</strong></p><p><span>Total Spend</span><strong>₹{{ total_spend }}</strong></p></div></section><section class="panel"><h2>Order History</h2>{% include "dashboard/order_table.html" with orders=orders show_details=True %}</section>{% endblock %}
