@@ -83,6 +83,14 @@ if (menuToggle && menu) {
   menuToggle.addEventListener("click", () => {
     menu.classList.toggle("is-open");
     menuToggle.setAttribute("aria-expanded", menu.classList.contains("is-open"));
+    if (!menu.classList.contains("is-open")) {
+      document.querySelectorAll("[data-shop-catalog]").forEach((catalog) => {
+        catalog.classList.remove("is-open", "is-panel-open", "has-panel");
+        catalog.querySelectorAll("[data-catalog-panel], [data-catalog-panel-content]").forEach((item) => {
+          item.classList.remove("is-active");
+        });
+      });
+    }
   });
 }
 
@@ -96,12 +104,17 @@ document.querySelectorAll("[data-shop-catalog]").forEach((catalog) => {
   const trigger = catalog.querySelector("[data-shop-trigger]");
   const mainItems = catalog.querySelectorAll("[data-catalog-panel]");
   const panels = catalog.querySelectorAll("[data-catalog-panel-content]");
+  const panelList = catalog.querySelector("[data-catalog-panel-list]");
   const backButtons = catalog.querySelectorAll("[data-catalog-back]");
   let closeTimer;
+  let activeCategory = null;
 
   const isCompact = () => window.matchMedia("(max-width: 1100px)").matches;
 
   const setPanel = (panelName) => {
+    activeCategory = panelName;
+    catalog.classList.add("has-panel");
+    panelList?.classList.add("is-visible");
     mainItems.forEach((item) => {
       item.classList.toggle("is-active", item.dataset.catalogPanel === panelName);
     });
@@ -117,13 +130,23 @@ document.querySelectorAll("[data-shop-catalog]").forEach((catalog) => {
   };
 
   const closeCatalog = () => {
-    catalog.classList.remove("is-open", "is-panel-open");
+    activeCategory = null;
+    catalog.classList.remove("is-open", "is-panel-open", "has-panel");
+    panelList?.classList.remove("is-visible");
+    mainItems.forEach((item) => item.classList.remove("is-active"));
+    panels.forEach((panel) => panel.classList.remove("is-active"));
     trigger?.setAttribute("aria-expanded", "false");
   };
 
   catalog.addEventListener("mouseenter", openCatalog);
   catalog.addEventListener("mouseleave", () => {
     closeTimer = window.setTimeout(closeCatalog, 220);
+  });
+
+  catalog.addEventListener("focusout", (event) => {
+    if (!catalog.contains(event.relatedTarget)) {
+      closeCatalog();
+    }
   });
 
   trigger?.addEventListener("keydown", (event) => {
@@ -141,7 +164,11 @@ document.querySelectorAll("[data-shop-catalog]").forEach((catalog) => {
     if (!isCompact()) return;
     event.preventDefault();
     catalog.classList.toggle("is-open");
-    catalog.classList.remove("is-panel-open");
+    catalog.classList.remove("is-panel-open", "has-panel");
+    activeCategory = null;
+    panelList?.classList.remove("is-visible");
+    mainItems.forEach((item) => item.classList.remove("is-active"));
+    panels.forEach((panel) => panel.classList.remove("is-active"));
     trigger.setAttribute("aria-expanded", catalog.classList.contains("is-open"));
   });
 
@@ -165,7 +192,9 @@ document.querySelectorAll("[data-shop-catalog]").forEach((catalog) => {
 
   backButtons.forEach((button) => {
     button.addEventListener("click", () => {
-      catalog.classList.remove("is-panel-open");
+      catalog.classList.remove("is-panel-open", "has-panel");
+      activeCategory = null;
+      panelList?.classList.remove("is-visible");
       mainItems.forEach((item) => item.classList.remove("is-active"));
       panels.forEach((panel) => panel.classList.remove("is-active"));
     });

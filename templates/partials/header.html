@@ -57,14 +57,14 @@
         <a class="shop-trigger {% if '/shop/' in request.path %}is-active{% endif %}" href="{% url 'shop' %}" aria-haspopup="true" aria-expanded="false" data-shop-trigger>Shop</a>
         <div class="catalog-dropdown" data-catalog-menu>
           <div class="catalog-main-list" data-catalog-main-list>
-            <button class="catalog-main-item is-active" type="button" data-catalog-panel="boards-panels">Boards &amp; Panels <span aria-hidden="true">&gt;</span></button>
-            <button class="catalog-main-item" type="button" data-catalog-panel="kitchen-fittings-accessories">Kitchen Fittings &amp; Accessories <span aria-hidden="true">&gt;</span></button>
-            <button class="catalog-main-item" type="button" data-catalog-panel="wardrobe-bed-fittings">Wardrobe &amp; Bed Fittings <span aria-hidden="true">&gt;</span></button>
-            <button class="catalog-main-item" type="button" data-catalog-panel="modular-furniture">Modular Furniture <span aria-hidden="true">&gt;</span></button>
-            <button class="catalog-main-item" type="button" data-catalog-panel="others">Others <span aria-hidden="true">&gt;</span></button>
+            <button class="catalog-main-item" type="button" data-catalog-panel="boards-panels"><span class="catalog-label">Boards &amp; Panels</span><span aria-hidden="true">&gt;</span></button>
+            <button class="catalog-main-item" type="button" data-catalog-panel="kitchen-fittings-accessories"><span class="catalog-label">Kitchen Fittings &amp; Accessories</span><span aria-hidden="true">&gt;</span></button>
+            <button class="catalog-main-item" type="button" data-catalog-panel="wardrobe-bed-fittings"><span class="catalog-label">Wardrobe &amp; Bed Fittings</span><span aria-hidden="true">&gt;</span></button>
+            <button class="catalog-main-item" type="button" data-catalog-panel="modular-furniture"><span class="catalog-label">Modular Furniture</span><span aria-hidden="true">&gt;</span></button>
+            <button class="catalog-main-item" type="button" data-catalog-panel="others"><span class="catalog-label">Others</span><span aria-hidden="true">&gt;</span></button>
           </div>
           <div class="catalog-panel-list" data-catalog-panel-list>
-            <div class="catalog-panel is-active" data-catalog-panel-content="boards-panels">
+            <div class="catalog-panel" data-catalog-panel-content="boards-panels">
               <button class="catalog-back" type="button" data-catalog-back>&lt; Shop</button>
               <p>Boards &amp; Panels</p>
               <a href="/shop/boards-panels/pvc-foamboards/">PVC Foamboards</a>
