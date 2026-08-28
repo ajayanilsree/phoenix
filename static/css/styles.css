@@ -282,7 +282,7 @@ body.site-revealed .site-footer {
 .section-head h2 { font-size: clamp(2rem, 3vw, 2.75rem); }
 .section-head.centered { justify-content: center; text-align: center; }
 .section-head.centered p:not(.eyebrow) { max-width: 720px; margin: 12px auto 0; color: var(--muted); }
-.category-grid, .product-grid, .trust-grid, .application-grid, .stat-grid, .chart-grid, .benefit-grid { display: grid; gap: 24px; }
+.category-grid, .product-grid, .trust-grid, .application-grid, .stat-grid, .chart-grid { display: grid; gap: 24px; }
 .category-grid { grid-template-columns: repeat(4, 1fr); }
 .premium-category-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: stretch; }
 .category-card, .product-card, .trust-grid > div, .summary-card, .form-card, .auth-card, .panel, .stat-card {
@@ -340,13 +340,6 @@ body.site-revealed .site-footer {
 .promo-inner { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
 .promo-inner .eyebrow, .promo-inner h2 { color: var(--white); }
 
-.benefit-strip { background: var(--white); border-bottom: 1px solid var(--border); }
-.benefit-grid { grid-template-columns: repeat(4, 1fr); padding: 24px 0; }
-.benefit-grid div { display: grid; gap: 2px; border-left: 1px solid var(--border); padding-left: 20px; }
-.benefit-grid div:first-child { border-left: 0; padding-left: 0; }
-.benefit-grid span { color: var(--brand-accent); font-weight: 800; font-size: .82rem; }
-.benefit-grid strong { color: var(--navy); }
-.benefit-grid small { color: var(--muted); }
 .editorial-grid, .about-grid, .project-cta-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; }
 .editorial-media { border-radius: 18px; overflow: hidden; min-height: 440px; box-shadow: var(--shadow); }
 .editorial-media img { width: 100%; height: 100%; min-height: 440px; object-fit: cover; }
@@ -566,8 +559,7 @@ th { color: var(--muted); font-size: .86rem; }
   .category-grid, .product-grid, .trust-grid { grid-template-columns: repeat(2, 1fr); }
   .premium-category-grid { grid-template-columns: repeat(3, 1fr); }
   .premium-category-grid .category-art { height: clamp(205px, 28vw, 225px); }
-  .application-grid, .stat-grid, .chart-grid, .footer-grid, .benefit-grid { grid-template-columns: repeat(2, 1fr); }
-  .benefit-grid div:nth-child(3) { border-left: 0; padding-left: 0; }
+  .application-grid, .stat-grid, .chart-grid, .footer-grid { grid-template-columns: repeat(2, 1fr); }
   .dashboard-sidebar { position: static; height: auto; }
   .side-nav { grid-template-columns: repeat(3, 1fr); }
 }
@@ -602,11 +594,9 @@ th { color: var(--muted); font-size: .86rem; }
   .mega-menu { grid-template-columns: 1fr; }
   .shop-layout, .cart-item { grid-template-columns: 1fr; }
   .filters { position: static; }
-  .category-grid, .product-grid, .trust-grid, .application-grid, .stat-grid, .chart-grid, .detail-tabs, .footer-grid, .benefit-grid { grid-template-columns: 1fr; }
+  .category-grid, .product-grid, .trust-grid, .application-grid, .stat-grid, .chart-grid, .detail-tabs, .footer-grid { grid-template-columns: 1fr; }
   .premium-category-grid { grid-template-columns: minmax(0, 1fr); }
   .premium-category-grid .category-art { height: clamp(190px, 52vw, 215px); }
-  .benefit-grid div { border-left: 0; padding-left: 0; border-top: 1px solid var(--border); padding-top: 14px; }
-  .benefit-grid div:first-child { border-top: 0; padding-top: 0; }
   .section { padding: 54px 0; }
   .about-section { padding-top: 56px; padding-bottom: 56px; }
   .product-card-image-wrapper { height: 190px; }
