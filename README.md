@@ -57,3 +57,34 @@ python manage.py migrate
 6. Upload a test product or category image through the Phoenix Admin and open the resulting page. The image URL should begin with `https://res.cloudinary.com/`.
 
 Existing demo images remain available for local development through the explicit DEBUG fallback. Before production deployment, upload any media records that still reference local files and verify their database names are Cloudinary-backed; do not delete the local `media/` directory until that inventory is complete.
+
+## Render Data Persistence
+
+Render services have an ephemeral filesystem. Production must use a managed PostgreSQL database; the application now refuses to start in Render or with `DEBUG=False` when `DATABASE_URL` is missing instead of silently using `db.sqlite3`.
+
+Set these service environment variables in Render:
+
+```env
+DATABASE_URL=postgresql://...
+SECRET_KEY=use-a-long-random-secret
+DEBUG=False
+CLOUDINARY_URL=cloudinary://...
+```
+
+`DATABASE_URL` should be the Internal Database URL for a PostgreSQL database attached to the service. Never commit it or any other secret. `db.sqlite3` is for local development only and is ignored by Git.
+
+Use these Render commands:
+
+```text
+Build: pip install -r requirements.txt && python manage.py collectstatic --noinput
+Start: gunicorn phoenix_ecommerce.wsgi:application
+```
+
+Run migrations once against the configured PostgreSQL database, then verify the selected backend with the read-only diagnostic command:
+
+```bash
+python manage.py migrate
+python manage.py db_info
+```
+
+It should report `Database backend: PostgreSQL`, `SQLite: NO`, and `Connection: OK`. `database_health` is an equivalent command name. Do not run `flush`, delete the database, or put demo seeding in the Render build command. The existing `seed_phoenix_categories` command is idempotent, but use it only as a deliberate one-time catalogue setup operation.

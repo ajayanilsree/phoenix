@@ -35,6 +35,7 @@ def env_int(name, default):
 load_local_env()
 
 DEBUG = env_bool("DEBUG", True)
+IS_RENDER = env_bool("RENDER", False) or bool(os.environ.get("RENDER_EXTERNAL_HOSTNAME"))
 SECRET_KEY = os.environ.get("SECRET_KEY")
 if not SECRET_KEY:
     if DEBUG:
@@ -110,6 +111,11 @@ if database_url:
             conn_health_checks=True,
         )
     }
+elif IS_RENDER or not DEBUG:
+    raise RuntimeError(
+        "DATABASE_URL must be configured for Render/production. "
+        "Refusing to fall back to disposable SQLite storage."
+    )
 else:
     DATABASES = {
         "default": {
