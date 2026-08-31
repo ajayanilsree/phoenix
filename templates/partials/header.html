@@ -22,7 +22,7 @@
     <a class="brand" href="{% url 'home' %}"><img src="{% static 'img/phoenix-logo-blue.png' %}" alt="Phoenix Interior Hub"></a>
     <form class="search-form" action="{% url 'shop' %}" method="get">
       <label class="sr-only" for="site-search">Search products</label>
-      <input id="site-search" name="q" type="search" placeholder="Search panels, boards, louvers, sheets & accessories..." value="{{ query|default:'' }}">
+      <input id="site-search" name="q" type="search" placeholder="Search boards, fittings, panels, accessories..." value="{{ query|default:'' }}">
       <button class="search-submit" type="submit" aria-label="Search"><span aria-hidden="true"></span></button>
     </form>
     <nav class="header-actions">

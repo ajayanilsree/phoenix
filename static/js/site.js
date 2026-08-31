@@ -207,6 +207,32 @@ document.querySelectorAll("[data-shop-catalog]").forEach((catalog) => {
   });
 });
 
+const filterDrawer = document.querySelector(".filters");
+const filterToggle = document.querySelector("[data-filter-toggle]");
+const sortToggle = document.querySelector("[data-sort-toggle]");
+const filterClose = document.querySelector("[data-filter-close]");
+const drawerBackdrop = document.querySelector("[data-drawer-backdrop]");
+
+if (filterDrawer && filterToggle) {
+  const setDrawer = (isOpen) => {
+    filterDrawer.classList.toggle("is-mobile-open", isOpen);
+    if (drawerBackdrop) drawerBackdrop.hidden = !isOpen;
+    document.body.classList.toggle("drawer-open", isOpen);
+    if (isOpen) filterClose?.focus();
+  };
+
+  filterToggle.addEventListener("click", () => setDrawer(true));
+  sortToggle?.addEventListener("click", () => {
+    setDrawer(true);
+    filterDrawer.querySelector("select[name='sort']")?.focus();
+  });
+  filterClose?.addEventListener("click", () => setDrawer(false));
+  drawerBackdrop?.addEventListener("click", () => setDrawer(false));
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") setDrawer(false);
+  });
+}
+
 document.querySelectorAll("[data-chatbot]").forEach((chatbot) => {
   const launcher = chatbot.querySelector("[data-chatbot-launcher]");
   const panel = chatbot.querySelector("[data-chatbot-panel]");

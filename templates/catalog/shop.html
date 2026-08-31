@@ -1,57 +1,7 @@
 {% extends "base/storefront.html" %}
-{% block title %}Shop Phoenix Products{% endblock %}
+{% block title %}Shop | Phoenix Interior Hub{% endblock %}
 {% block content %}
-<section class="page-hero compact">
-  <div class="container">
-    <p class="eyebrow">Catalogue</p>
-    <h1>Shop Phoenix materials</h1>
-    <p>{{ page_obj.paginator.count }} product{{ page_obj.paginator.count|pluralize }} found.</p>
-  </div>
-</section>
-<section class="section">
-  <div class="container shop-layout">
-    <aside class="filters">
-      <form method="get">
-        <label>Search</label>
-        <input name="q" value="{{ query }}" placeholder="Product, SKU, category">
-        <label>Category</label>
-        <select name="category">
-          <option value="">All categories</option>
-          {% for category in categories %}<option value="{{ category.slug }}" {% if selected_category == category.slug %}selected{% endif %}>{{ category.name }}</option>{% endfor %}
-        </select>
-        <label>Availability</label>
-        <select name="availability">
-          <option value="">Any</option>
-          <option value="in_stock" {% if availability == "in_stock" %}selected{% endif %}>In stock</option>
-        </select>
-        <label>Sort</label>
-        <select name="sort">
-          <option value="recommended" {% if sort == "recommended" %}selected{% endif %}>Recommended</option>
-          <option value="newest" {% if sort == "newest" %}selected{% endif %}>Newest</option>
-          <option value="price_low" {% if sort == "price_low" %}selected{% endif %}>Price: Low to High</option>
-          <option value="price_high" {% if sort == "price_high" %}selected{% endif %}>Price: High to Low</option>
-          <option value="name" {% if sort == "name" %}selected{% endif %}>Name</option>
-        </select>
-        <button class="btn btn-primary" type="submit">Apply Filters</button>
-        <a class="clear-link" href="{% url 'shop' %}">Clear filters</a>
-      </form>
-    </aside>
-    <div>
-      <div class="product-grid">
-        {% for product in page_obj %}
-          {% include "partials/product_card.html" %}
-        {% empty %}
-          <div class="empty-state">No products found. Try a broader search or browse the main categories.</div>
-        {% endfor %}
-      </div>
-      {% if page_obj.paginator.num_pages > 1 %}
-        <nav class="pagination">
-          {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}">Previous</a>{% endif %}
-          <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-          {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}">Next</a>{% endif %}
-        </nav>
-      {% endif %}
-    </div>
-  </div>
-</section>
+<section class="page-hero shop-hero"><div class="container"><p class="breadcrumb"><a href="{% url 'home' %}">Home</a><span>›</span> Shop</p><p class="eyebrow">The Phoenix catalogue</p><h1>{% if catalogue_query %}{{ catalogue_query }}{% else %}Shop Materials{% endif %}</h1><p>Considered boards, fittings, surfaces and furniture solutions for modern interiors.</p></div></section>
+<section class="section shop-section"><div class="container shop-layout"><aside class="filters" id="filters"><div class="filter-heading"><h2>Filter by</h2><span>{{ page_obj.paginator.count }} results</span><button class="filter-close" type="button" aria-label="Close filters" data-filter-close>×</button></div><form method="get"><label>Search<input name="q" value="{{ query }}" placeholder="Product, SKU or category"></label><label>Category<select name="category"><option value="">All categories</option>{% for category in categories %}<option value="{{ category.slug }}" {% if selected_category == category.slug %}selected{% endif %}>{{ category.name }}</option>{% endfor %}</select></label><label>Availability<select name="availability"><option value="">Any availability</option><option value="in_stock" {% if availability == "in_stock" %}selected{% endif %}>In stock</option></select></label><label>Sort<select name="sort"><option value="recommended" {% if sort == "recommended" %}selected{% endif %}>Recommended</option><option value="newest" {% if sort == "newest" %}selected{% endif %}>Newest</option><option value="price_low" {% if sort == "price_low" %}selected{% endif %}>Price: Low to High</option><option value="price_high" {% if sort == "price_high" %}selected{% endif %}>Price: High to Low</option><option value="name" {% if sort == "name" %}selected{% endif %}>Name</option></select></label><button class="btn btn-primary" type="submit">Apply filters</button><a class="clear-link" href="{% url 'shop' %}">Clear filters</a></form></aside><div class="shop-results"><div class="results-bar"><p>Showing <strong>{{ page_obj.start_index }}–{{ page_obj.end_index }}</strong> of {{ page_obj.paginator.count }} materials</p><div class="mobile-shop-actions"><button class="btn btn-ghost mobile-filter-trigger" type="button" data-filter-toggle>Filter</button><button class="btn btn-ghost mobile-sort-trigger" type="button" data-sort-toggle>Sort</button></div></div><div class="product-grid shop-product-grid">{% for product in page_obj %}{% include "partials/product_card.html" %}{% empty %}<div class="empty-state"><strong>No materials found.</strong><br><span>Try a broader search or explore the main categories.</span></div>{% endfor %}</div>{% if page_obj.paginator.num_pages > 1 %}<nav class="pagination">{% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}&q={{ query|urlencode }}">Previous</a>{% endif %}<span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>{% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}&q={{ query|urlencode }}">Next</a>{% endif %}</nav>{% endif %}</div></div></section>
+<div class="mobile-drawer-backdrop" data-drawer-backdrop hidden></div>
 {% endblock %}

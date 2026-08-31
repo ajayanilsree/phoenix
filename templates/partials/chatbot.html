@@ -1,15 +1,15 @@
 {% load static %}
 {% if CHATBOT_ENABLED %}
-<section class="phoenix-chatbot" data-chatbot data-endpoint="{% url 'chatbot_message' %}" data-csrf="{{ csrf_token }}" aria-label="Phoenix Assistant">
-  <div class="chatbot-nudge" data-chatbot-nudge>Need help finding a product?</div>
-  <button class="chatbot-launcher" type="button" aria-label="Open Phoenix Assistant" aria-expanded="false" data-chatbot-launcher>
+<section class="phoenix-chatbot" data-chatbot data-endpoint="{% url 'chatbot_message' %}" data-csrf="{{ csrf_token }}" aria-label="Phoenix Material Advisor">
+  <div class="chatbot-nudge" data-chatbot-nudge>Need help choosing the right material?</div>
+  <button class="chatbot-launcher" type="button" aria-label="Open Phoenix Material Advisor" aria-expanded="false" data-chatbot-launcher>
     <span aria-hidden="true"></span>
   </button>
   <div class="chatbot-panel" role="dialog" aria-modal="false" aria-labelledby="chatbot-title" hidden data-chatbot-panel>
     <div class="chatbot-header">
       <div>
-        <h2 id="chatbot-title">Phoenix Assistant</h2>
-        <p>AI Shopping Assistant</p>
+        <h2 id="chatbot-title">Phoenix Material Advisor</h2>
+        <p>Product guidance for your project</p>
       </div>
       <button class="chatbot-close" type="button" aria-label="Close Phoenix Assistant" data-chatbot-close>&times;</button>
     </div>

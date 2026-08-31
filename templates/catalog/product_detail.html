@@ -28,6 +28,7 @@
         {% if product.discount_percent %}<em>{{ product.discount_percent }}% OFF</em>{% endif %}
       </div>
       <p class="stock">Availability: {% if product.inventory.current_stock > 0 %}In stock{% else %}Out of stock{% endif %}</p>
+      <a class="product-whatsapp" href="https://wa.me/918921996547?text=Hello%20Phoenix%20Interior%20Hub%2C%20I%20would%20like%20to%20enquire%20about%20{{ product.name|urlencode }}." target="_blank" rel="noopener noreferrer">Ask about this product <span>↗</span></a>
       <form action="{% url 'add_to_cart' product.id %}" method="post" class="buy-form">
         {% csrf_token %}
         <input type="hidden" name="next" value="{{ request.get_full_path }}">
