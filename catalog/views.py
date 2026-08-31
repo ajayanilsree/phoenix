@@ -61,8 +61,21 @@ def shop(request, main_slug=None, sub_slug=None):
     categories = Category.objects.filter(is_active=True)
     query = request.GET.get("q", "").strip()
     catalogue_query = CATALOG_LABELS.get(sub_slug or main_slug, "")
-    if catalogue_query and not query:
-        query = catalogue_query
+    category = None
+    subcategory = None
+    if main_slug:
+        category = get_object_or_404(Category, slug=main_slug, is_active=True, parent__isnull=True)
+        if sub_slug:
+            subcategory = get_object_or_404(
+                Category,
+                slug=sub_slug,
+                parent=category,
+                is_active=True,
+            )
+        products = products.filter(category=category)
+        if subcategory:
+            products = products.filter(subcategory=subcategory)
+
     category_slug = request.GET.get("category", "").strip()
     availability = request.GET.get("availability", "").strip()
     sort = request.GET.get("sort", "recommended")

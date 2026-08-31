@@ -7,7 +7,7 @@ from django.core.paginator import Paginator
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
 from django.db.models import Count, Q, Sum
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.cache import never_cache
 
@@ -222,9 +222,9 @@ def product_form(request, product_id=None):
                     },
                 )
                 save_product_images(product, request.FILES)
-            messages.success(request, "Product saved.")
+            messages.success(request, "Product updated successfully." if product_id else "Product created successfully.")
             return redirect("admin_products")
-        except ValueError as error:
+        except (ValueError, ValidationError) as error:
             form.add_error(None, str(error))
     subcategory_options = {}
     subcategories = Category.objects.filter(is_active=True, parent__isnull=False).select_related("parent").order_by(
@@ -244,6 +244,19 @@ def product_form(request, product_id=None):
 
 
 @never_cache
+def product_image_delete(request, product_id, image_id):
+    blocked = require_admin(request)
+    if blocked:
+        return blocked
+    if request.method != "POST":
+        return redirect("admin_product_edit", product_id=product_id)
+    image = get_object_or_404(ProductImage, pk=image_id, product_id=product_id)
+    image.delete()
+    messages.success(request, "Product image removed.")
+    return redirect("admin_product_edit", product_id=product_id)
+
+
+@never_cache
 def product_toggle(request, product_id):
     blocked = require_admin(request)
     if blocked:
@@ -252,6 +265,24 @@ def product_toggle(request, product_id):
     if request.method == "POST":
         product.is_active = not product.is_active
         product.save(update_fields=["is_active", "updated_at"])
+        messages.success(request, f"{product.name} was {'activated' if product.is_active else 'deactivated'} successfully.")
+    return redirect("admin_products")
+
+
+@never_cache
+def product_delete(request, product_id):
+    blocked = require_admin(request)
+    if blocked:
+        return blocked
+    product = get_object_or_404(Product, pk=product_id)
+    if request.method != "POST":
+        return redirect("admin_products")
+    if OrderItem.objects.filter(product=product).exists():
+        messages.error(request, "This product is referenced by existing orders and cannot be permanently deleted. Deactivate it instead.")
+        return redirect("admin_products")
+    with transaction.atomic():
+        product.delete()
+    messages.success(request, f"{product.name} was deleted successfully.")
     return redirect("admin_products")
 
 

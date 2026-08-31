@@ -89,9 +89,8 @@ class ProductManageForm(forms.ModelForm):
 
     def save(self, commit=True):
         product = super().save(commit=False)
-        product.slug = unique_slug_for(Product, product.name, instance=product)
-        product.short_description = ""
         if not product.pk:
+            product.slug = unique_slug_for(Product, product.name)
             product.is_active = True
         if commit:
             product.save()

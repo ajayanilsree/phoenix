@@ -3,7 +3,7 @@
 {% block heading %}{% if product %}Edit Product{% else %}Add Product{% endif %}{% endblock %}
 {% block sidebar %}{% include "dashboard/admin/_sidebar.html" %}{% endblock %}
 {% block content %}
-<form class="management-form" method="post" enctype="multipart/form-data">{% csrf_token %}
+<form class="management-form" method="post" action="{% if product %}{% url 'admin_product_edit' product.id %}{% else %}{% url 'admin_product_add' %}{% endif %}" enctype="multipart/form-data" data-product-form>{% csrf_token %}
   {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
   <section class="panel"><h2>Basic Information</h2><div class="form-grid">
     <label>{{ form.name.label }}{{ form.name }}{% for error in form.name.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>
@@ -20,9 +20,9 @@
     <label>{{ form.applications.label }}{{ form.applications }}{% for error in form.applications.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>
   </div></section>
   <section class="panel"><h2>Pricing</h2><div class="form-grid"><label>{{ form.compare_at_price.label }}{{ form.compare_at_price }}{% for error in form.compare_at_price.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label><label>{{ form.price.label }}{{ form.price }}{% for error in form.price.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label></div></section>
-  <section class="panel"><h2>Images</h2><p class="muted">Upload up to 4 product images. Existing images stay attached.</p><input type="file" name="images" accept=".jpg,.jpeg,.png,.webp" multiple>{% if product %}<div class="image-preview-row">{% for image in product.images.all %}{% if image.image %}<img src="{{ image.image.url }}" alt="{{ image.alt_text|default:product.name }}">{% endif %}{% empty %}<span class="muted">No images yet.</span>{% endfor %}</div>{% endif %}</section>
+  <section class="panel product-images-panel"><h2>Images</h2><p class="muted">Upload up to 4 product images. The first image is used as the primary image.</p><div class="product-image-upload"><input id="product-images" type="file" name="images" accept="image/jpeg,image/png,image/webp" multiple><p class="field-error" data-image-error role="alert" hidden></p></div>{% if product %}<h3 class="image-subheading">Existing Images</h3><div class="product-image-preview-grid">{% for image in product.images.all %}{% if image.image %}<div class="product-image-preview"><img src="{{ image.image.url }}" alt="{{ image.alt_text|default:product.name }}"><span class="image-preview-label">{% if forloop.first %}Primary{% else %}Image {{ forloop.counter }}{% endif %}</span><button class="image-preview-remove" type="submit" formaction="{% url 'admin_product_image_delete' product.id image.id %}" formmethod="post" onclick="return confirm('Remove this product image?');" aria-label="Remove saved image {{ forloop.counter }}">&times;</button></div>{% endif %}{% empty %}<p class="muted">No images yet.</p>{% endfor %}</div>{% endif %}<h3 class="image-subheading" data-selected-heading hidden>Selected Images <span data-image-count></span></h3><div class="product-image-preview-grid" data-image-previews></div></section>
   <section class="panel"><h2>Inventory</h2><div class="form-grid"><label>{{ form.stock.label }}{{ form.stock }}</label><label>{{ form.low_stock_threshold.label }}{{ form.low_stock_threshold }}</label></div></section>
-  <button class="btn btn-primary" type="submit">Save Product</button>
+  <button class="btn btn-primary" type="submit" data-save-product>Save Product</button>
 </form>
 <script id="subcategory-options" type="application/json">{{ subcategory_options_json|safe }}</script>
 <script>
@@ -46,6 +46,75 @@
     };
     category.addEventListener("change", render);
     render();
+  })();
+</script>
+<script>
+  (() => {
+    const input = document.getElementById("product-images");
+    const previewGrid = document.querySelector("[data-image-previews]");
+    const error = document.querySelector("[data-image-error]");
+    const heading = document.querySelector("[data-selected-heading]");
+    const count = document.querySelector("[data-image-count]");
+    if (!input || !previewGrid || !error) return;
+    const existingCount = Number("{{ product.images.count|default:0 }}");
+    const maxImages = 4;
+    const maxSize = 5 * 1024 * 1024;
+    let selectedFiles = [];
+    let objectUrls = [];
+    const showError = (message) => { error.textContent = message; error.hidden = !message; };
+    const syncInput = () => {
+      const data = new DataTransfer();
+      selectedFiles.forEach((file) => data.items.add(file));
+      input.files = data.files;
+    };
+    const render = () => {
+      objectUrls.forEach((url) => URL.revokeObjectURL(url));
+      objectUrls = [];
+      previewGrid.innerHTML = "";
+      if (!selectedFiles.length) { heading.hidden = true; return; }
+      heading.hidden = false;
+      count.textContent = `(${existingCount + selectedFiles.length}/4)`;
+      selectedFiles.forEach((file, index) => {
+        const url = URL.createObjectURL(file);
+        objectUrls.push(url);
+        const card = document.createElement("div");
+        card.className = "product-image-preview";
+        card.innerHTML = `<img src="${url}" alt="Preview of ${file.name}"><span class="image-preview-label">${existingCount + index === 0 ? "Primary" : `Image ${existingCount + index + 1}`}</span><button class="image-preview-remove" type="button" aria-label="Remove image ${file.name}">&times;</button>`;
+        card.querySelector("button").addEventListener("click", () => { selectedFiles.splice(index, 1); syncInput(); showError(""); render(); });
+        previewGrid.appendChild(card);
+      });
+    };
+    input.addEventListener("change", () => {
+      const incoming = Array.from(input.files || []);
+      const available = maxImages - existingCount - selectedFiles.length;
+      const valid = [];
+      let message = "";
+      for (const file of incoming) {
+        if (valid.length >= Math.max(0, available)) { message = "You can upload a maximum of 4 product images."; break; }
+        if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { message = `${file.name} is not a supported image format.`; continue; }
+        if (file.size > maxSize) { message = `${file.name} is too large. Images must be 5MB or smaller.`; continue; }
+        const duplicate = selectedFiles.some((old) => old.name === file.name && old.size === file.size && old.lastModified === file.lastModified);
+        if (!duplicate) valid.push(file);
+      }
+      selectedFiles.push(...valid);
+      syncInput();
+      showError(message);
+      render();
+    });
+    render();
+  })();
+</script>
+<script>
+  (() => {
+    const form = document.querySelector("[data-product-form]");
+    const button = document.querySelector("[data-save-product]");
+    if (!form || !button) return;
+    form.addEventListener("submit", () => {
+      if (form.dataset.submitting === "true") return;
+      form.dataset.submitting = "true";
+      button.disabled = true;
+      button.textContent = "Saving...";
+    });
   })();
 </script>
 {% endblock %}
