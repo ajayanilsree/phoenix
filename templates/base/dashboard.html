@@ -10,12 +10,17 @@
 </head>
 <body class="dashboard-body">
   <main class="dashboard-shell">
-    <aside class="dashboard-sidebar">
-      <a class="brand" href="{% url 'home' %}"><img class="phoenix-brand-logo" src="{% static 'img/phoenix-logo-blue.png' %}" alt="Phoenix Interior Hub"></a>
+    <aside id="dashboard-navigation" class="dashboard-sidebar" data-dashboard-sidebar>
+      <div class="dashboard-sidebar-head">
+        <a class="brand" href="{% url 'home' %}"><img class="phoenix-brand-logo" src="{% static 'img/phoenix-logo-blue.png' %}" alt="Phoenix Interior Hub"></a>
+        <button class="dashboard-drawer-close" type="button" data-dashboard-close aria-label="Close dashboard navigation">&times;</button>
+      </div>
       <nav class="side-nav">{% block sidebar %}{% endblock %}</nav>
     </aside>
+    <button class="dashboard-drawer-backdrop" type="button" data-dashboard-backdrop aria-label="Close dashboard navigation" hidden></button>
     <section class="dashboard-main">
       <div class="dashboard-topbar">
+        <button class="dashboard-menu-toggle" type="button" data-dashboard-menu aria-controls="dashboard-navigation" aria-expanded="false" aria-label="Open dashboard navigation">&#9776;</button>
         <div>
           <p class="eyebrow">Phoenix Interior Hub</p>
           <h1>{% block heading %}Dashboard{% endblock %}</h1>

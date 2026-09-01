@@ -65,3 +65,20 @@ class ProductReviewTests(TestCase):
         custom.refresh_from_db()
         self.assertTrue(custom.is_active)
         self.assertTrue(Category.objects.filter(slug="boards-panels", parent__isnull=True, is_active=True).exists())
+
+    def test_product_card_renders_a_clean_dynamic_discount_badge(self):
+        discounted = Product.objects.create(
+            name="Discounted Panel",
+            slug="discounted-panel",
+            sku="DISCOUNTED-PANEL-1",
+            category=self.category,
+            price="300.00",
+            compare_at_price="500.00",
+        )
+
+        response = self.client.get(reverse("shop"))
+
+        self.assertContains(response, 'class="product-discount-badge">40% OFF</span>')
+        self.assertNotContains(response, "-40%")
+        discounted.refresh_from_db()
+        self.assertEqual(discounted.discount_percent, 40)

@@ -68,7 +68,7 @@
   <div class="container section-head"><div><p class="eyebrow">Related</p><h2>Similar products</h2></div></div>
   <div class="container product-grid">{% for product in related_products %}{% include "partials/product_card.html" %}{% endfor %}</div>
 </section>
-{% if product.primary_image and product.primary_image.image %}<div class="gallery-lightbox" data-gallery-lightbox hidden><div class="gallery-lightbox-backdrop" data-gallery-close></div><div class="gallery-lightbox-content" role="dialog" aria-modal="true" aria-label="Product image viewer"><button class="gallery-lightbox-close" type="button" data-gallery-close aria-label="Close image viewer">&times;</button><button class="gallery-arrow gallery-lightbox-prev" type="button" data-gallery-lightbox-prev aria-label="Previous product image">&#8592;</button><img src="{{ product.primary_image.image.url }}" alt="{{ product.primary_image.alt_text|default:product.name }}" data-gallery-lightbox-image><button class="gallery-arrow gallery-lightbox-next" type="button" data-gallery-lightbox-next aria-label="Next product image">&#8594;</button><span class="gallery-counter" data-gallery-counter></span></div></div>{% endif %}
+{% if product.primary_image and product.primary_image.image %}<div class="gallery-lightbox" data-gallery-lightbox hidden><div class="gallery-lightbox-backdrop" data-gallery-close></div><div class="gallery-lightbox-content" role="dialog" aria-modal="true" aria-label="Product image viewer" tabindex="-1"><button class="gallery-lightbox-close" type="button" data-gallery-close aria-label="Close image viewer">&times;</button><button class="gallery-arrow gallery-lightbox-prev" type="button" data-gallery-lightbox-prev aria-label="Previous product image">&#8592;</button><img class="lightbox-image" src="{{ product.primary_image.image.url }}" alt="{{ product.primary_image.alt_text|default:product.name }}" data-gallery-lightbox-image><button class="gallery-arrow gallery-lightbox-next" type="button" data-gallery-lightbox-next aria-label="Next product image">&#8594;</button><span class="gallery-counter" data-gallery-counter></span></div></div>{% endif %}
 <script>
   (() => {
     const gallery = document.querySelector("[data-gallery]");
@@ -82,6 +82,7 @@
     const counter = lightbox?.querySelector("[data-gallery-counter]");
     let current = Math.max(0, thumbs.findIndex((thumb) => thumb.classList.contains("active")));
     let touchStartX = null;
+    let lightboxTouchStartX = null;
     const setImage = (index) => {
       current = (index + thumbs.length) % thumbs.length;
       const thumb = thumbs[current];
@@ -93,8 +94,8 @@
     };
     const next = () => setImage(current + 1);
     const previous = () => setImage(current - 1);
-    const open = () => { if (!lightbox) return; setImage(current); lightbox.hidden = false; document.body.classList.add("gallery-lightbox-open"); lightbox.querySelector("[data-gallery-close]").focus(); };
-    const close = () => { if (!lightbox) return; lightbox.hidden = true; document.body.classList.remove("gallery-lightbox-open"); main.focus(); };
+    const open = () => { if (!lightbox) return; setImage(current); lightbox.hidden = false; document.body.classList.add("gallery-lightbox-open"); document.body.classList.add("lightbox-open"); lightbox.querySelector("[data-gallery-close]").focus(); };
+    const close = () => { if (!lightbox) return; lightbox.hidden = true; document.body.classList.remove("gallery-lightbox-open", "lightbox-open"); main.focus(); };
     thumbs.forEach((thumb, index) => thumb.addEventListener("click", () => setImage(index)));
     gallery.querySelector("[data-gallery-next]")?.addEventListener("click", next);
     gallery.querySelector("[data-gallery-prev]")?.addEventListener("click", previous);
@@ -102,6 +103,13 @@
     main.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(); } });
     lightbox?.querySelector("[data-gallery-lightbox-next]")?.addEventListener("click", next);
     lightbox?.querySelector("[data-gallery-lightbox-prev]")?.addEventListener("click", previous);
+    if (lightbox && thumbs.length < 2) {
+      lightbox.querySelector("[data-gallery-lightbox-prev]").hidden = true;
+      lightbox.querySelector("[data-gallery-lightbox-next]").hidden = true;
+      counter.hidden = true;
+    }
+    lightbox?.addEventListener("touchstart", (event) => { lightboxTouchStartX = event.changedTouches[0].clientX; }, { passive: true });
+    lightbox?.addEventListener("touchend", (event) => { if (lightboxTouchStartX === null || thumbs.length < 2) return; const distance = event.changedTouches[0].clientX - lightboxTouchStartX; if (Math.abs(distance) > 45) distance < 0 ? next() : previous(); lightboxTouchStartX = null; }, { passive: true });
     lightbox?.querySelectorAll("[data-gallery-close]").forEach((item) => item.addEventListener("click", close));
     gallery.addEventListener("touchstart", (event) => { touchStartX = event.changedTouches[0].clientX; }, { passive: true });
     gallery.addEventListener("touchend", (event) => { if (touchStartX === null) return; const distance = event.changedTouches[0].clientX - touchStartX; if (Math.abs(distance) > 45) distance < 0 ? next() : previous(); touchStartX = null; }, { passive: true });

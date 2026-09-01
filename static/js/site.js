@@ -3,6 +3,29 @@ const menu = document.querySelector("[data-menu]");
 const preloader = document.getElementById("phoenix-preloader");
 const siteHeader = document.querySelector(".site-header");
 
+const dashboardSidebar = document.querySelector("[data-dashboard-sidebar]");
+const dashboardMenu = document.querySelector("[data-dashboard-menu]");
+const dashboardClose = document.querySelector("[data-dashboard-close]");
+const dashboardBackdrop = document.querySelector("[data-dashboard-backdrop]");
+
+if (dashboardSidebar && dashboardMenu && dashboardBackdrop) {
+  const setDashboardDrawer = (isOpen) => {
+    dashboardSidebar.classList.toggle("is-open", isOpen);
+    dashboardBackdrop.hidden = !isOpen;
+    dashboardMenu.setAttribute("aria-expanded", String(isOpen));
+    document.body.classList.toggle("dashboard-drawer-open", isOpen);
+    if (isOpen) dashboardClose?.focus();
+  };
+
+  dashboardMenu.addEventListener("click", () => setDashboardDrawer(true));
+  dashboardClose?.addEventListener("click", () => setDashboardDrawer(false));
+  dashboardBackdrop.addEventListener("click", () => setDashboardDrawer(false));
+  dashboardSidebar.querySelectorAll("a").forEach((link) => link.addEventListener("click", () => setDashboardDrawer(false)));
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") setDashboardDrawer(false);
+  });
+}
+
 if (siteHeader) {
   const updateHeaderState = () => {
     siteHeader.classList.toggle("is-scrolled", window.scrollY > 12);
