@@ -1,9 +1,11 @@
 from decimal import Decimal, ROUND_HALF_UP
+import logging
 from uuid import uuid4
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ImproperlyConfigured
 from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
@@ -15,12 +17,14 @@ from cart.models import Cart
 from inventory.models import InventoryRecord, StockMovement
 from .forms import AgentPromoForm, CheckoutAddressForm
 from .models import Address, Order, OrderItem
+from .payment import get_razorpay_client
 
 PROMO_SESSION_KEY = "agent_promo_code"
 CHECKOUT_ADDRESS_SESSION_KEY = "checkout_delivery_values"
 PENDING_ORDER_SESSION_KEY = "pending_payment_order_id"
 ADDRESS_FIELDS = ["full_name", "phone", "line1", "line2", "city", "district", "state", "postal_code", "country"]
 MONEY = Decimal("0.01")
+logger = logging.getLogger(__name__)
 
 
 def money(value):
@@ -93,18 +97,6 @@ def checkout_summary(cart, promo_code=None):
         "tax_total": Decimal("0.00"),
         "grand_total": discounted_subtotal,
     }
-
-
-def razorpay_client():
-    from django.conf import settings
-
-    if not settings.RAZORPAY_KEY_ID or not settings.RAZORPAY_KEY_SECRET:
-        return None
-    try:
-        import razorpay
-    except ImportError:
-        return None
-    return razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
 
 def stock_error(cart):
@@ -251,7 +243,10 @@ def checkout(request):
                 request.session.pop(PROMO_SESSION_KEY, None)
                 messages.error(request, summary["promo_error"])
                 return redirect("checkout")
-            if not razorpay_client():
+            try:
+                client = get_razorpay_client()
+            except ImproperlyConfigured as exc:
+                logger.error("Razorpay is unavailable: %s", exc)
                 messages.error(request, "Online payment is not configured yet. Please try again later.")
                 return redirect("checkout")
             error = stock_error(cart)
@@ -260,7 +255,6 @@ def checkout(request):
                 return redirect("checkout")
             order = create_or_update_pending_order(request, cart, form, summary, delivery_address, billing_address)
             try:
-                client = razorpay_client()
                 receipt = order.order_number
                 razorpay_order = client.order.create({
                     "amount": amount_in_paise(order.grand_total),
@@ -306,8 +300,8 @@ def verify_razorpay_payment(request):
         order.payment_status = "failed"
         order.save(update_fields=["payment_status", "updated_at"])
         return JsonResponse({"success": False, "message": "Payment verification failed."}, status=400)
-    client = razorpay_client()
     try:
+        client = get_razorpay_client()
         client.utility.verify_payment_signature({"razorpay_order_id": returned_order_id, "razorpay_payment_id": payment_id, "razorpay_signature": signature})
     except Exception:
         order.payment_status = "failed"
