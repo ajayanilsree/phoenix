@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse
 
@@ -46,3 +47,21 @@ class ProductReviewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Select a valid choice")
         self.assertEqual(ProductReview.objects.count(), 0)
+
+    def test_shop_menu_reads_active_categories_from_database(self):
+        main = Category.objects.create(name="Lighting Solutions", slug="lighting-solutions", sort_order=20)
+        child = Category.objects.create(name="Pendant Lights", slug="pendant-lights", parent=main)
+
+        response = self.client.get(reverse("home"))
+
+        self.assertContains(response, main.name)
+        self.assertContains(response, child.name)
+
+    def test_category_seed_does_not_hide_custom_categories(self):
+        custom = Category.objects.create(name="Lighting Solutions", slug="lighting-solutions", sort_order=20)
+
+        call_command("seed_phoenix_categories")
+
+        custom.refresh_from_db()
+        self.assertTrue(custom.is_active)
+        self.assertTrue(Category.objects.filter(slug="boards-panels", parent__isnull=True, is_active=True).exists())

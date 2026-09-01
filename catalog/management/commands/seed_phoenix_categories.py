@@ -94,7 +94,6 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
-        allowed_ids = set()
         by_slug = {}
 
         for main_index, (main_name, children) in enumerate(CATALOGUE):
@@ -108,7 +107,6 @@ class Command(BaseCommand):
                     "sort_order": main_index,
                 },
             )
-            allowed_ids.add(main.id)
             by_slug[main_slug] = main
             for child_index, child_name in enumerate(children):
                 child_slug = slugify(child_name)
@@ -121,7 +119,6 @@ class Command(BaseCommand):
                         "sort_order": child_index,
                     },
                 )
-                allowed_ids.add(child.id)
                 by_slug[child_slug] = child
 
         remapped = 0
@@ -138,6 +135,5 @@ class Command(BaseCommand):
                 product.save(update_fields=["category", "subcategory", "updated_at"])
                 remapped += 1
 
-        Category.objects.exclude(id__in=allowed_ids).update(is_active=False)
         self.stdout.write(self.style.SUCCESS("Phoenix Interior Hub category hierarchy is ready."))
         self.stdout.write(f"Products remapped safely: {remapped}")
