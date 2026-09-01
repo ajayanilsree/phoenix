@@ -156,6 +156,7 @@
     const lightbox = document.querySelector("[data-gallery-lightbox]");
     const lightboxImage = lightbox?.querySelector("[data-gallery-lightbox-image]");
     const counter = lightbox?.querySelector("[data-gallery-counter]");
+    const thumbRow = gallery.querySelector("[data-gallery-thumbs]");
     let current = Math.max(0, thumbs.findIndex((thumb) => thumb.classList.contains("active")));
     let touchStartX = null;
     let lightboxTouchStartX = null;
@@ -168,16 +169,22 @@
       if (lightboxImage) { lightboxImage.src = thumb.dataset.imageUrl; lightboxImage.alt = thumb.dataset.imageAlt; }
       if (counter) counter.textContent = `${current + 1} / ${thumbs.length}`;
     };
-    const bindThumbs = () => thumbs.forEach((thumb, index) => thumb.addEventListener("click", () => setImage(index)));
+    const bindThumbs = () => {};
     const next = () => setImage(current + 1);
     const previous = () => setImage(current - 1);
     const open = () => { if (!lightbox) return; setImage(current); lightbox.hidden = false; document.body.classList.add("gallery-lightbox-open"); document.body.classList.add("lightbox-open"); lightbox.querySelector("[data-gallery-close]").focus(); };
     const close = () => { if (!lightbox) return; lightbox.hidden = true; document.body.classList.remove("gallery-lightbox-open", "lightbox-open"); main.focus(); };
+    thumbRow?.addEventListener("click", (event) => {
+      const thumb = event.target.closest("[data-gallery-thumb]");
+      if (!thumb || !thumbRow.contains(thumb)) return;
+      const index = thumbs.indexOf(thumb);
+      if (index >= 0) setImage(index);
+    });
     bindThumbs();
     window.phoenixSetGalleryImages = (images) => {
       const row = gallery.querySelector("[data-gallery-thumbs]");
       if (!row || !images.length) return;
-      row.innerHTML = images.map((image, index) => \`<button class="product-thumbnail\${index === 0 ? " active" : ""}" type="button" data-gallery-thumb data-image-url="\${image.url}" data-image-alt="\${image.alt}" aria-label="View product image \${index + 1}" aria-pressed="\${index === 0}"><img src="\${image.url}" alt="" loading="lazy"></button>\`).join("");
+      row.innerHTML = images.map((image, index) => `<button class="product-thumbnail${index === 0 ? " active" : ""}" type="button" data-gallery-thumb data-image-url="${image.url}" data-image-alt="${image.alt}" aria-label="View product image ${index + 1}" aria-pressed="${index === 0}"><img src="${image.url}" alt="" loading="lazy"></button>`).join("");
       thumbs = Array.from(row.querySelectorAll("[data-gallery-thumb]"));
       bindThumbs();
       gallery.querySelector("[data-gallery-prev]")?.toggleAttribute("hidden", thumbs.length < 2);
