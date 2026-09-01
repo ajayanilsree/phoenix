@@ -507,6 +507,15 @@ body.site-revealed .site-footer {
 .spec-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 .spec-grid span { border: 1px solid var(--border); border-radius: 10px; padding: 10px; }
 .spec-grid strong { display: block; color: var(--muted); font-size: .82rem; }
+.variant-selectors { display: grid; gap: 10px; margin: 22px 0; }
+.variant-selector-label { margin: 0; color: var(--navy); font-size: .78rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.variant-options { display: flex; flex-wrap: wrap; gap: 10px; }
+.variant-card { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 82px; min-height: 46px; padding: 10px 14px; border: 1px solid rgba(7,27,51,.2); border-radius: 7px; background: var(--white); color: var(--navy); font-size: .92rem; font-weight: 800; }
+.variant-card:hover { border-color: var(--navy); background: var(--light-blue); transform: none; box-shadow: none; }
+.variant-card.is-selected { border-color: var(--navy); background: var(--navy); color: var(--white); }
+.variant-card.is-unavailable { opacity: .48; cursor: not-allowed; text-decoration: line-through; }
+.variant-card.is-unavailable small { font-size: .68rem; font-weight: 700; text-decoration: none; }
+@media (max-width: 720px) { .variant-card { min-width: 88px; min-height: 46px; } }
 .detail-tabs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin-top: 32px; }
 .detail-tabs section { border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
 .cart-layout, .checkout-layout { display: grid; grid-template-columns: 1fr 340px; gap: 24px; align-items: start; }

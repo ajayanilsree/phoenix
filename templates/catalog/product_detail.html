@@ -10,7 +10,7 @@
           {% if product.images.count > 1 %}<button class="gallery-arrow gallery-arrow-prev" type="button" data-gallery-prev aria-label="Previous product image">&#8592;</button><button class="gallery-arrow gallery-arrow-next" type="button" data-gallery-next aria-label="Next product image">&#8594;</button>{% endif %}
         </div>
         <div class="thumb-row" data-gallery-thumbs aria-label="Product images">
-          {% for image in product.images.all %}{% if image.image %}<button class="product-thumbnail{% if image.id == product.primary_image.id %} active{% endif %}" type="button" data-gallery-thumb data-image-url="{{ image.image.url }}" data-image-alt="{{ image.alt_text|default:product.name }}" aria-label="View product image {{ forloop.counter }}" aria-pressed="{% if image.id == product.primary_image.id %}true{% else %}false{% endif %}"><img src="{{ image.image.url }}" alt="" loading="lazy"></button>{% endif %}{% endfor %}
+          {% for image in product.images.all %}{% if not image.variant and image.image %}<button class="product-thumbnail{% if image.id == product.primary_image.id %} active{% endif %}" type="button" data-gallery-thumb data-image-url="{{ image.image.url }}" data-image-alt="{{ image.alt_text|default:product.name }}" aria-label="View product image {{ forloop.counter }}" aria-pressed="{% if image.id == product.primary_image.id %}true{% else %}false{% endif %}"><img src="{{ image.image.url }}" alt="" loading="lazy"></button>{% endif %}{% endfor %}
         </div>
       {% else %}
         <div class="main-image"><span>{{ product.category.name }}</span></div>
@@ -32,22 +32,17 @@
       <form action="{% url 'add_to_cart' product.id %}" method="post" class="buy-form">
         {% csrf_token %}
         <input type="hidden" name="next" value="{{ request.get_full_path }}">
-        {% if product.variants.exists %}
-          <label>Variant</label>
-          <select name="variant">
-            {% for variant in product.variants.all %}<option value="{{ variant.id }}">{{ variant.name }} {% if variant.size %}- {{ variant.size }}{% endif %}</option>{% endfor %}
-          </select>
-        {% endif %}
+        {% if product.has_variants and variants %}<div class="variant-selectors" data-variant-selectors></div><input type="hidden" name="variant" data-selected-variant>{% endif %}
         <div class="spec-grid">
-          {% if product.size %}<span><strong>Size</strong>{{ product.size }}</span>{% endif %}
+          {% if product.variant_type != "size" and product.size %}<span><strong>Size</strong>{{ product.size }}</span>{% endif %}
           {% if product.thickness %}<span><strong>Thickness</strong>{{ product.thickness }}</span>{% endif %}
           {% if product.finish %}<span><strong>Finish</strong>{{ product.finish }}</span>{% endif %}
-          {% if product.colour %}<span><strong>Colour</strong>{{ product.colour }}</span>{% endif %}
+          {% if product.variant_type != "color" and product.colour %}<span><strong>Colour</strong>{{ product.colour }}</span>{% endif %}
         </div>
         <label>Quantity</label>
         <input type="number" name="quantity" min="1" value="1">
-        <button class="btn btn-primary wide" type="submit">Add to Cart</button>
-        <button class="btn btn-secondary wide" type="submit" formaction="{% url 'add_to_cart' product.id %}">Buy Now</button>
+        <button class="btn btn-primary wide" type="submit" data-add-variant-to-cart {% if product.has_variants and variants %}disabled{% endif %}>Add to Cart</button>
+        <button class="btn btn-secondary wide" type="submit" formaction="{% url 'add_to_cart' product.id %}" data-variant-buy-now {% if product.has_variants and variants %}disabled{% endif %}>Buy Now</button>
       </form>
     </div>
   </div>
@@ -68,6 +63,87 @@
   <div class="container section-head"><div><p class="eyebrow">Related</p><h2>Similar products</h2></div></div>
   <div class="container product-grid">{% for product in related_products %}{% include "partials/product_card.html" %}{% endfor %}</div>
 </section>
+{% if product.has_variants and variants %}
+<script id="base-image-data" type="application/json">{{ base_image_data_json|safe }}</script>
+<script id="base-option-data" type="application/json">{{ base_option_data_json|safe }}</script>
+<script id="variant-data" type="application/json">{{ variant_data_json|safe }}</script>
+<script>
+  (() => {
+    const data = JSON.parse(document.getElementById("variant-data").textContent || "[]");
+    const base = JSON.parse(document.getElementById("base-option-data").textContent || "{}");
+    const baseImages = JSON.parse(document.getElementById("base-image-data").textContent || "[]");
+    const selectors = document.querySelector("[data-variant-selectors]");
+    const hidden = document.querySelector("[data-selected-variant]");
+    const price = document.querySelector(".detail-price");
+    const stock = document.querySelector(".purchase-panel .stock");
+    const sku = document.querySelector(".purchase-panel .sku");
+    const add = document.querySelector("[data-add-variant-to-cart]");
+    const buyNow = document.querySelector("[data-variant-buy-now]");
+    if (!data.length || !selectors || !hidden) return;
+    const field = "{{ product.variant_type }}" === "color" ? "colour" : "size";
+    const optionsData = [base, ...data].filter((option) => option[field]);
+    const labelText = field === "size" ? "Select Size" : "Select Color";
+    const heading = document.createElement("p");
+    heading.className = "variant-selector-label";
+    heading.textContent = labelText;
+    selectors.appendChild(heading);
+    const options = document.createElement("div");
+    options.className = "variant-options";
+    selectors.appendChild(options);
+    const buttons = [];
+    optionsData.forEach((variant) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "variant-card";
+      button.dataset.optionType = variant.option_type || "variant";
+      button.dataset.variantId = variant.option_type === "base" ? "" : variant.id;
+      button.textContent = variant[field];
+      button.setAttribute("aria-pressed", "false");
+      if (variant.stock <= 0) {
+        button.classList.add("is-unavailable");
+        button.append(" ");
+        const status = document.createElement("small");
+        status.textContent = "Out of stock";
+        button.appendChild(status);
+      }
+      options.appendChild(button);
+      buttons.push(button);
+    });
+    let selectedOption = "base";
+    const render = () => {
+      const selected = optionsData.find((option) => String(option.id) === String(selectedOption));
+      buttons.forEach((button) => {
+        const isSelected = String(button.dataset.optionType === "base" ? "base" : button.dataset.variantId) === String(selectedOption);
+        button.classList.toggle("is-selected", isSelected);
+        button.setAttribute("aria-pressed", String(isSelected));
+      });
+      if (!selected) {
+        hidden.value = "";
+        add.disabled = true;
+        if (buyNow) buyNow.disabled = true;
+        stock.textContent = `Select a ${field === "size" ? "size" : "color"} to see availability`;
+        window.phoenixSetGalleryImages?.(baseImages);
+        return;
+      }
+      hidden.value = selected.option_type === "base" ? "" : selected.id;
+      if (sku) sku.textContent = `SKU ${selected.sku}`;
+      price.innerHTML = `${selected.compare_price ? `<span>₹${selected.compare_price}</span>` : ""}<strong>₹${selected.price}</strong><small>/ {{ product.get_unit_type_display }}</small>${selected.discount_percent ? `<em>${selected.discount_percent}% OFF</em>` : ""}`;
+      stock.textContent = selected.stock > 0 ? "Availability: In stock" : "Availability: Out of stock";
+      add.disabled = selected.stock <= 0;
+      if (buyNow) buyNow.disabled = selected.stock <= 0;
+      window.phoenixSetGalleryImages?.(selected.images?.length ? selected.images : baseImages);
+    };
+    buttons.forEach((button) => button.addEventListener("click", () => {
+      const selected = optionsData.find((option) => String(option.id) === String(button.dataset.optionType === "base" ? "base" : button.dataset.variantId));
+      if (!selected || selected.stock <= 0) return;
+      selectedOption = String(selected.id);
+      render();
+    }));
+    render();
+    /* Keep the base product price visible until the customer chooses an option. */
+  })();
+</script>
+{% endif %}
 {% if product.primary_image and product.primary_image.image %}<div class="gallery-lightbox" data-gallery-lightbox hidden><div class="gallery-lightbox-backdrop" data-gallery-close></div><div class="gallery-lightbox-content" role="dialog" aria-modal="true" aria-label="Product image viewer" tabindex="-1"><button class="gallery-lightbox-close" type="button" data-gallery-close aria-label="Close image viewer">&times;</button><button class="gallery-arrow gallery-lightbox-prev" type="button" data-gallery-lightbox-prev aria-label="Previous product image">&#8592;</button><img class="lightbox-image" src="{{ product.primary_image.image.url }}" alt="{{ product.primary_image.alt_text|default:product.name }}" data-gallery-lightbox-image><button class="gallery-arrow gallery-lightbox-next" type="button" data-gallery-lightbox-next aria-label="Next product image">&#8594;</button><span class="gallery-counter" data-gallery-counter></span></div></div>{% endif %}
 <script>
   (() => {
@@ -75,7 +151,7 @@
     if (!gallery) return;
     const main = gallery.querySelector("[data-gallery-main]");
     const mainImage = gallery.querySelector("[data-gallery-image]");
-    const thumbs = Array.from(gallery.querySelectorAll("[data-gallery-thumb]"));
+    let thumbs = Array.from(gallery.querySelectorAll("[data-gallery-thumb]"));
     if (!main || !mainImage || !thumbs.length) return;
     const lightbox = document.querySelector("[data-gallery-lightbox]");
     const lightboxImage = lightbox?.querySelector("[data-gallery-lightbox-image]");
@@ -92,11 +168,24 @@
       if (lightboxImage) { lightboxImage.src = thumb.dataset.imageUrl; lightboxImage.alt = thumb.dataset.imageAlt; }
       if (counter) counter.textContent = `${current + 1} / ${thumbs.length}`;
     };
+    const bindThumbs = () => thumbs.forEach((thumb, index) => thumb.addEventListener("click", () => setImage(index)));
     const next = () => setImage(current + 1);
     const previous = () => setImage(current - 1);
     const open = () => { if (!lightbox) return; setImage(current); lightbox.hidden = false; document.body.classList.add("gallery-lightbox-open"); document.body.classList.add("lightbox-open"); lightbox.querySelector("[data-gallery-close]").focus(); };
     const close = () => { if (!lightbox) return; lightbox.hidden = true; document.body.classList.remove("gallery-lightbox-open", "lightbox-open"); main.focus(); };
-    thumbs.forEach((thumb, index) => thumb.addEventListener("click", () => setImage(index)));
+    bindThumbs();
+    window.phoenixSetGalleryImages = (images) => {
+      const row = gallery.querySelector("[data-gallery-thumbs]");
+      if (!row || !images.length) return;
+      row.innerHTML = images.map((image, index) => \`<button class="product-thumbnail\${index === 0 ? " active" : ""}" type="button" data-gallery-thumb data-image-url="\${image.url}" data-image-alt="\${image.alt}" aria-label="View product image \${index + 1}" aria-pressed="\${index === 0}"><img src="\${image.url}" alt="" loading="lazy"></button>\`).join("");
+      thumbs = Array.from(row.querySelectorAll("[data-gallery-thumb]"));
+      bindThumbs();
+      gallery.querySelector("[data-gallery-prev]")?.toggleAttribute("hidden", thumbs.length < 2);
+      gallery.querySelector("[data-gallery-next]")?.toggleAttribute("hidden", thumbs.length < 2);
+      lightbox?.querySelector("[data-gallery-lightbox-prev]")?.toggleAttribute("hidden", thumbs.length < 2);
+      lightbox?.querySelector("[data-gallery-lightbox-next]")?.toggleAttribute("hidden", thumbs.length < 2);
+      setImage(0);
+    };
     gallery.querySelector("[data-gallery-next]")?.addEventListener("click", next);
     gallery.querySelector("[data-gallery-prev]")?.addEventListener("click", previous);
     main.addEventListener("click", (event) => { if (!event.target.closest("button")) open(); });

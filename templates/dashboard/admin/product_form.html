@@ -18,10 +18,38 @@
     <label>{{ form.finish.label }}{{ form.finish }}{% for error in form.finish.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>
     <label>{{ form.features.label }}{{ form.features }}{% for error in form.features.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>
     <label>{{ form.applications.label }}{{ form.applications }}{% for error in form.applications.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>
+    <label>{{ form.variant_type.label }}{{ form.variant_type }}{% for error in form.variant_type.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>
   </div></section>
   <section class="panel"><h2>Pricing</h2><div class="form-grid"><label>{{ form.compare_at_price.label }}{{ form.compare_at_price }}{% for error in form.compare_at_price.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label><label>{{ form.price.label }}{{ form.price }}{% for error in form.price.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label></div></section>
-  <section class="panel product-images-panel"><h2>Images</h2><p class="muted">Upload up to 4 product images. The first image is used as the primary image.</p><div class="product-image-upload"><input id="product-images" type="file" name="images" accept="image/jpeg,image/png,image/webp" multiple><p class="field-error" data-image-error role="alert" hidden></p></div>{% if product %}<h3 class="image-subheading">Existing Images</h3><div class="product-image-preview-grid">{% for image in product.images.all %}{% if image.image %}<div class="product-image-preview"><img src="{{ image.image.url }}" alt="{{ image.alt_text|default:product.name }}"><span class="image-preview-label">{% if forloop.first %}Primary{% else %}Image {{ forloop.counter }}{% endif %}</span><button class="image-preview-remove" type="submit" formaction="{% url 'admin_product_image_delete' product.id image.id %}" formmethod="post" onclick="return confirm('Remove this product image?');" aria-label="Remove saved image {{ forloop.counter }}">&times;</button></div>{% endif %}{% empty %}<p class="muted">No images yet.</p>{% endfor %}</div>{% endif %}<h3 class="image-subheading" data-selected-heading hidden>Selected Images <span data-image-count></span></h3><div class="product-image-preview-grid" data-image-previews></div></section>
+  <section class="panel product-images-panel"><h2>Images</h2><p class="muted">Upload up to 4 base product images. The first image is used as the primary image.</p><div class="product-image-upload"><input id="product-images" type="file" name="images" accept="image/jpeg,image/png,image/webp" multiple><p class="field-error" data-image-error role="alert" hidden></p></div>{% if product %}<h3 class="image-subheading">Existing Images</h3><div class="product-image-preview-grid">{% for image in product.images.all %}{% if not image.variant and image.image %}<div class="product-image-preview"><img src="{{ image.image.url }}" alt="{{ image.alt_text|default:product.name }}"><span class="image-preview-label">{% if forloop.first %}Primary{% else %}Image {{ forloop.counter }}{% endif %}</span><button class="image-preview-remove" type="submit" formaction="{% url 'admin_product_image_delete' product.id image.id %}" formmethod="post" onclick="return confirm('Remove this product image?');" aria-label="Remove saved image {{ forloop.counter }}">&times;</button></div>{% endif %}{% empty %}<p class="muted">No images yet.</p>{% endfor %}</div>{% endif %}<h3 class="image-subheading" data-selected-heading hidden>Selected Images <span data-image-count></span></h3><div class="product-image-preview-grid" data-image-previews></div></section>
   <section class="panel"><h2>Inventory</h2><div class="form-grid"><label>{{ form.stock.label }}{{ form.stock }}</label><label>{{ form.low_stock_threshold.label }}{{ form.low_stock_threshold }}</label></div></section>
+  <section class="panel variant-panel" data-variant-panel>
+    <h2>Product Variants</h2>
+    <p class="muted">Add purchasable options for this product.</p>
+    <label class="variant-count-field">Number of Variants{{ form.variant_count }}{% for error in form.variant_count.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>
+    {{ variant_formset.management_form }}
+    <div data-variant-list>
+      {% for variant_form in variant_formset %}
+        <div class="variant-row" data-variant-row data-existing-images="{% if variant_form.instance.pk %}{{ variant_form.instance.images.count }}{% else %}0{% endif %}">
+          {{ variant_form.id }}
+          {% if variant_form.DELETE %}{{ variant_form.DELETE.as_hidden }}{% endif %}
+          <div class="form-grid">
+            <label>{{ variant_form.sku.label }}{{ variant_form.sku }}{% for error in variant_form.sku.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>
+            <label>{{ variant_form.size.label }}{{ variant_form.size }}</label>
+            <label>{{ variant_form.colour.label }}{{ variant_form.colour }}</label>
+            <label>{{ variant_form.original_price.label }}{{ variant_form.original_price }}</label>
+            <label>{{ variant_form.selling_price.label }}{{ variant_form.selling_price }}</label>
+            <label>{{ variant_form.stock.label }}{{ variant_form.stock }}</label>
+            <label>{{ variant_form.low_stock_threshold.label }}{{ variant_form.low_stock_threshold }}</label>
+            <label class="variant-image-field">Variant Images<input type="file" name="variant_images_{{ forloop.counter0 }}" accept="image/jpeg,image/png,image/webp" multiple data-variant-image-input></label>
+          </div>
+          <div class="variant-image-heading" data-variant-image-heading {% if not variant_form.instance.pk or not variant_form.instance.images.exists %}hidden{% endif %}>Selected Images <span data-variant-image-count>({% if variant_form.instance.pk %}{{ variant_form.instance.images.count }}{% else %}0{% endif %}/4)</span></div>
+          <div class="product-image-preview-grid variant-image-previews" data-variant-image-previews>{% if variant_form.instance.pk %}{% for image in variant_form.instance.images.all %}<div class="product-image-preview"><img src="{{ image.image.url }}" alt="{{ image.alt_text|default:variant_form.instance.name }}"><span class="image-preview-label">{% if forloop.first %}Primary{% else %}Image {{ forloop.counter }}{% endif %}</span><button class="image-preview-remove" type="submit" formaction="{% url 'admin_product_image_delete' product.id image.id %}" formmethod="post" onclick="return confirm('Remove this variant image?');" aria-label="Remove variant image">&times;</button></div>{% endfor %}{% endif %}</div>
+          <p class="field-error" data-variant-image-error role="alert" hidden></p>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
   <button class="btn btn-primary" type="submit" data-save-product>Save Product</button>
 </form>
 <script id="subcategory-options" type="application/json">{{ subcategory_options_json|safe }}</script>
@@ -50,13 +78,107 @@
 </script>
 <script>
   (() => {
+    const toggle = document.getElementById("id_variant_type");
+    const count = document.getElementById("id_variant_count");
+    const panel = document.querySelector("[data-variant-panel]");
+    const list = document.querySelector("[data-variant-list]");
+    const total = document.getElementById("id_variants-TOTAL_FORMS");
+    if (!toggle || !count || !panel || !list || !total) return;
+    const maxImages = 4;
+    const maxSize = 5 * 1024 * 1024;
+    const baseSize = document.getElementById("id_size")?.closest("label");
+    const baseColour = document.getElementById("id_colour")?.closest("label");
+    const baseInventory = [...document.querySelectorAll("section.panel")].find((section) => section.querySelector("h2")?.textContent.trim() === "Inventory");
+    const initUploader = (row) => {
+      const input = row.querySelector("[data-variant-image-input]");
+      const grid = row.querySelector("[data-variant-image-previews]");
+      const heading = row.querySelector("[data-variant-image-heading]");
+      const countLabel = row.querySelector("[data-variant-image-count]");
+      const error = row.querySelector("[data-variant-image-error]");
+      if (!input || !grid || !heading || !countLabel || !error || input.dataset.initialized) return;
+      input.dataset.initialized = "true";
+      const existingCount = Number(row.dataset.existingImages || 0);
+      let selectedFiles = [];
+      const syncInput = () => { const data = new DataTransfer(); selectedFiles.forEach((file) => data.items.add(file)); input.files = data.files; };
+      const render = () => {
+        grid.querySelectorAll(".variant-new-image").forEach((card) => card.remove());
+        const totalImages = existingCount + selectedFiles.length;
+        heading.hidden = totalImages === 0;
+        countLabel.textContent = `(${totalImages}/4)`;
+        selectedFiles.forEach((file, index) => {
+          const url = URL.createObjectURL(file);
+          const card = document.createElement("div");
+          card.className = "product-image-preview variant-new-image";
+          card.innerHTML = `<img src="${url}" alt="Preview of ${file.name}"><span class="image-preview-label">${existingCount + index === 0 ? "Primary" : `Image ${existingCount + index + 1}`}</span><button class="image-preview-remove" type="button" aria-label="Remove image ${file.name}">&times;</button>`;
+          card.querySelector("button").addEventListener("click", () => { selectedFiles.splice(index, 1); syncInput(); showError(""); render(); });
+          grid.appendChild(card);
+        });
+      };
+      const showError = (message) => { error.textContent = message; error.hidden = !message; };
+      input.addEventListener("change", () => {
+        const incoming = Array.from(input.files || []);
+        const available = maxImages - existingCount - selectedFiles.length;
+        let message = "";
+        for (const file of incoming) {
+          if (selectedFiles.length >= Math.max(0, available)) { message = "Maximum 4 images are allowed per variant."; break; }
+          if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { message = `${file.name} is not a supported image format.`; continue; }
+          if (file.size > maxSize) { message = `${file.name} is too large. Images must be 5MB or smaller.`; continue; }
+          const duplicate = selectedFiles.some((old) => old.name === file.name && old.size === file.size && old.lastModified === file.lastModified);
+          if (!duplicate) selectedFiles.push(file);
+        }
+        syncInput(); showError(message); render();
+      });
+      render();
+    };
+    list.querySelectorAll("[data-variant-row]").forEach(initUploader);
+    const sync = () => {
+       panel.hidden = toggle.value === "none";
+       list.querySelectorAll("[data-variant-row]").forEach((row) => row.querySelectorAll(".form-grid > label").forEach((label) => {
+        const field = label.querySelector("input, select, textarea");
+        const name = field?.name || "";
+        label.hidden = (name.includes("-size") && toggle.value !== "size") || (name.includes("-colour") && toggle.value !== "color") || name.includes("-thickness") || name.includes("-finish");
+      }));
+    };
+    toggle.addEventListener("change", () => { sync(); count.dispatchEvent(new Event("input")); });
+    count.addEventListener("input", () => {
+      const wanted = Math.min(20, Math.max(1, Number(count.value || 1)));
+      while (list.querySelectorAll("[data-variant-row]").length < wanted) addRow();
+      list.querySelectorAll("[data-variant-row]").forEach((row, index) => { row.hidden = index >= wanted; const deleteField = row.querySelector("input[name$='-DELETE']"); if (deleteField) deleteField.checked = index >= wanted; });
+    });
+    sync();
+    const addRow = () => {
+      const index = Number(total.value);
+      const source = list.querySelector("[data-variant-row]");
+      const row = source.cloneNode(true);
+      row.innerHTML = row.innerHTML.replaceAll(/variants-\d+/g, `variants-${index}`).replaceAll(/variant_images_\d+/g, `variant_images_${index}`);
+      row.dataset.existingImages = "0";
+      row.querySelectorAll("input, select, textarea").forEach((field) => {
+        if (field.type === "hidden") field.value = "";
+        else if (field.type === "checkbox") field.checked = false;
+        else field.value = "";
+      });
+      row.querySelector("[data-variant-image-previews]").innerHTML = "";
+      row.querySelector("[data-variant-image-input]").removeAttribute("data-initialized");
+      row.querySelector("[data-variant-image-heading]").hidden = true;
+      row.querySelector("[data-variant-image-count]").textContent = "(0/4)";
+      row.querySelector("[data-variant-image-error]").hidden = true;
+      list.appendChild(row);
+      total.value = index + 1;
+      initUploader(row);
+      sync();
+    };
+    count.dispatchEvent(new Event("input"));
+  })();
+</script>
+<script>
+  (() => {
     const input = document.getElementById("product-images");
     const previewGrid = document.querySelector("[data-image-previews]");
     const error = document.querySelector("[data-image-error]");
     const heading = document.querySelector("[data-selected-heading]");
     const count = document.querySelector("[data-image-count]");
     if (!input || !previewGrid || !error) return;
-    const existingCount = Number("{{ product.images.count|default:0 }}");
+    const existingCount = Number("{{ base_image_count|default:0 }}");
     const maxImages = 4;
     const maxSize = 5 * 1024 * 1024;
     let selectedFiles = [];

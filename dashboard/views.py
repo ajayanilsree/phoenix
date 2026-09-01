@@ -24,6 +24,7 @@ from .forms import (
     InventoryUpdateForm,
     OrderStatusForm,
     ProductManageForm,
+    ProductVariantFormSet,
 )
 
 
@@ -213,12 +214,12 @@ def review_delete(request, review_id):
 
 
 def save_product_images(product, files):
-    existing_count = product.images.count()
+    existing_count = product.images.filter(variant__isnull=True).count()
     incoming = files.getlist("images") if hasattr(files, "getlist") else []
     if existing_count + len(incoming) > 4:
         raise ValueError("A product can have a maximum of 4 images.")
     for index, image in enumerate(incoming, start=existing_count):
-        product_image = ProductImage(product=product, image=image, alt_text=product.name, sort_order=index, is_primary=existing_count == 0 and index == 0)
+        product_image = ProductImage(product=product, image=image, alt_text=product.name, sort_order=index, is_primary=existing_count == 0 and index == 0, variant=None)
         product_image.full_clean()
         product_image.save()
 
@@ -230,10 +231,21 @@ def product_form(request, product_id=None):
         return blocked
     product = get_object_or_404(Product, pk=product_id) if product_id else None
     form = ProductManageForm(request.POST or None, request.FILES or None, instance=product)
+    variant_formset = ProductVariantFormSet(request.POST or None, request.FILES or None, instance=product, prefix="variants")
+    variant_formset.variant_type = (request.POST.get("variant_type") if request.method == "POST" else (product.variant_type if product else "none")) or "none"
+    variant_formset.base_value = ""
+    if variant_formset.variant_type == Product.VARIANT_SIZE:
+        variant_formset.base_value = (request.POST.get("size") if request.method == "POST" else getattr(product, "size", "")) or ""
+    elif variant_formset.variant_type == Product.VARIANT_COLOR:
+        variant_formset.base_value = (request.POST.get("colour") if request.method == "POST" else getattr(product, "colour", "")) or ""
     if request.method == "POST" and form.is_valid():
+        variant_formset.variant_type = form.cleaned_data.get("variant_type", "none")
+        variant_formset.instance.has_variants = variant_formset.variant_type != "none"
+    if request.method == "POST" and form.is_valid() and variant_formset.is_valid():
         try:
             with transaction.atomic():
                 product = form.save()
+                variant_formset.instance = product
                 InventoryRecord.objects.update_or_create(
                     product=product,
                     defaults={
@@ -242,6 +254,37 @@ def product_form(request, product_id=None):
                     },
                 )
                 save_product_images(product, request.FILES)
+                protected_variants = []
+                for variant_form in variant_formset.forms:
+                    if variant_form.cleaned_data.get("DELETE") and variant_form.instance.pk and OrderItem.objects.filter(variant=variant_form.instance).exists():
+                        variant_form.cleaned_data["DELETE"] = False
+                        variant_form.instance.is_active = False
+                        protected_variants.append(variant_form.instance)
+                variants = variant_formset.save()
+                for variant in protected_variants:
+                    variant.save(update_fields=["is_active"])
+                for index, variant_form in enumerate(variant_formset.forms):
+                    if variant_form.cleaned_data.get("DELETE") or not variant_form.instance.pk:
+                        continue
+                    variant = variant_form.instance
+                    variant.variant_type = product.variant_type
+                    variant.name = variant.colour if product.variant_type == Product.VARIANT_COLOR else variant.size
+                    if product.variant_type == Product.VARIANT_COLOR:
+                        variant.size = ""
+                    else:
+                        variant.colour = ""
+                    update_fields = ["variant_type", "name", "size", "colour"]
+                    if hasattr(variant, "updated_at"):
+                        update_fields.append("updated_at")
+                    variant.save(update_fields=update_fields)
+                    images = request.FILES.getlist(f"variant_images_{index}")
+                    existing_count = variant.images.count()
+                    if existing_count + len(images) > 4:
+                        raise ValueError("Each variant can have a maximum of 4 images.")
+                    for image_index, image in enumerate(images, start=existing_count):
+                        product_image = ProductImage(product=product, variant=variant, image=image, alt_text=f"{product.name} - {variant.name}", sort_order=image_index, is_primary=existing_count == 0 and image_index == 0)
+                        product_image.full_clean()
+                        product_image.save()
             messages.success(request, "Product updated successfully." if product_id else "Product created successfully.")
             return redirect("admin_products")
         except (ValueError, ValidationError) as error:
@@ -258,6 +301,8 @@ def product_form(request, product_id=None):
         {
             "form": form,
             "product": product,
+            "variant_formset": variant_formset,
+            "base_image_count": product.images.filter(variant__isnull=True).count() if product else 0,
             "subcategory_options_json": json.dumps(subcategory_options, cls=DjangoJSONEncoder),
         },
     )

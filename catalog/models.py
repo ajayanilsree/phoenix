@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.validators import FileExtensionValidator
+from django.core.validators import FileExtensionValidator, MinValueValidator
 from django.db import models
 from django.urls import reverse
 
@@ -34,6 +34,10 @@ class Category(models.Model):
 
 
 class Product(models.Model):
+    VARIANT_NONE = "none"
+    VARIANT_SIZE = "size"
+    VARIANT_COLOR = "color"
+    VARIANT_TYPE_CHOICES = [(VARIANT_NONE, "None"), (VARIANT_SIZE, "Size"), (VARIANT_COLOR, "Color")]
     UNIT_CHOICES = [
         ("piece", "Piece"),
         ("sheet", "Sheet"),
@@ -64,6 +68,8 @@ class Product(models.Model):
     specifications = models.JSONField(default=dict, blank=True)
     features = models.TextField(blank=True)
     applications = models.TextField(blank=True)
+    has_variants = models.BooleanField(default=False)
+    variant_type = models.CharField(max_length=12, choices=VARIANT_TYPE_CHOICES, default=VARIANT_NONE)
     installation_notes = models.TextField(blank=True)
     is_featured = models.BooleanField(default=False)
     featured_order = models.PositiveIntegerField(default=0)
@@ -94,7 +100,8 @@ class Product(models.Model):
 
     @property
     def primary_image(self):
-        return self.images.filter(is_primary=True).first() or self.images.first()
+        base_images = self.images.filter(variant__isnull=True)
+        return base_images.filter(is_primary=True).first() or base_images.first()
 
     @property
     def original_price(self):
@@ -114,9 +121,21 @@ class Product(models.Model):
             return None
         return round(((self.compare_at_price - self.price) / self.compare_at_price) * 100)
 
+    @property
+    def display_price(self):
+        prices = [variant.price for variant in self.variants.filter(is_active=True)]
+        if prices and min(prices) != max(prices):
+            return f"From ₹{min(prices)}"
+        return f"₹{prices[0] if prices else self.price}"
+
+    @property
+    def total_variant_stock(self):
+        return sum(variant.stock for variant in self.variants.filter(is_active=True))
+
 
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="images")
+    variant = models.ForeignKey("ProductVariant", on_delete=models.CASCADE, related_name="images", blank=True, null=True)
     image = models.ImageField(
         upload_to="products/",
         blank=True,
@@ -139,7 +158,7 @@ class ProductImage(models.Model):
         super().clean()
         if not self.product_id:
             return
-        existing = ProductImage.objects.filter(product=self.product)
+        existing = ProductImage.objects.filter(product=self.product, variant=self.variant)
         if self.pk:
             existing = existing.exclude(pk=self.pk)
         if self.product_id and existing.count() >= 4:
@@ -148,6 +167,7 @@ class ProductImage(models.Model):
 
 class ProductVariant(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="variants")
+    variant_type = models.CharField(max_length=12, choices=Product.VARIANT_TYPE_CHOICES, default=Product.VARIANT_NONE)
     sku = models.CharField(max_length=80, unique=True)
     name = models.CharField(max_length=120)
     size = models.CharField(max_length=80, blank=True)
@@ -155,6 +175,10 @@ class ProductVariant(models.Model):
     colour = models.CharField(max_length=80, blank=True)
     finish = models.CharField(max_length=100, blank=True)
     price_delta = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    original_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    selling_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    stock = models.IntegerField(default=0, validators=[MinValueValidator(0)])
+    low_stock_threshold = models.PositiveIntegerField(default=5)
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -165,7 +189,30 @@ class ProductVariant(models.Model):
 
     @property
     def price(self):
-        return self.product.price + self.price_delta
+        return self.selling_price if self.selling_price is not None else self.product.price + self.price_delta
+
+    @property
+    def compare_price(self):
+        return self.original_price if self.original_price is not None else self.product.compare_at_price
+
+    @property
+    def has_discount(self):
+        return bool(self.compare_price and self.compare_price > self.price)
+
+    @property
+    def discount_percent(self):
+        if not self.has_discount:
+            return None
+        return round(((self.compare_price - self.price) / self.compare_price) * 100)
+
+    def clean(self):
+        super().clean()
+        if self.selling_price is not None and self.selling_price < 0:
+            raise ValidationError({"selling_price": "Selling price cannot be negative."})
+        if self.original_price is not None and self.original_price < 0:
+            raise ValidationError({"original_price": "Original price cannot be negative."})
+        if self.original_price is not None and self.selling_price is not None and self.selling_price > self.original_price:
+            raise ValidationError({"selling_price": "Selling price must be less than or equal to original price."})
 
 
 class ProductAttribute(models.Model):

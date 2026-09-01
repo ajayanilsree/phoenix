@@ -111,10 +111,11 @@ def stock_error(cart):
     if cart is None:
         return "Your cart is empty."
     for item in cart.items.select_related("product", "variant"):
-        inventory = InventoryRecord.objects.filter(variant_id=item.variant_id).first() if item.variant_id else None
-        if inventory is None:
+        if item.variant_id:
+            available = item.variant.stock
+        else:
             inventory = InventoryRecord.objects.filter(product_id=item.product_id).first()
-        available = inventory.current_stock if inventory else 0
+            available = inventory.current_stock if inventory else 0
         if item.quantity > available:
             return f"Only {max(available, 0)} units of {item.product.name} are currently available."
     return ""
@@ -170,6 +171,11 @@ def create_or_update_pending_order(request, cart, form, summary, delivery_addres
                 product_name=item.product.name,
                 sku=item.variant.sku if item.variant else item.product.sku,
                 selected_variant=item.variant.name if item.variant else "",
+                variant_sku=item.variant.sku if item.variant else "",
+                variant_size=item.variant.size if item.variant else "",
+                variant_colour=item.variant.colour if item.variant else "",
+                variant_thickness=item.variant.thickness if item.variant else "",
+                variant_finish=item.variant.finish if item.variant else "",
                 unit_type=item.product.unit_type,
                 unit_price=item.unit_price,
                 quantity=item.quantity,
@@ -313,6 +319,14 @@ def verify_razorpay_payment(request):
             order.save(update_fields=["payment_status", "updated_at"])
             return JsonResponse({"success": False, "message": error}, status=409)
         for item in order.items.select_related("product", "variant"):
+            if item.variant_id:
+                if item.variant.stock < item.quantity:
+                    order.payment_status = "failed"
+                    order.save(update_fields=["payment_status", "updated_at"])
+                    return JsonResponse({"success": False, "message": f"Only {max(item.variant.stock, 0)} units of {item.product_name} are currently available."}, status=409)
+                item.variant.stock -= item.quantity
+                item.variant.save(update_fields=["stock", "updated_at"])
+                continue
             inventory = InventoryRecord.objects.select_for_update().filter(variant_id=item.variant_id).first() if item.variant_id else None
             if inventory is None:
                 inventory = InventoryRecord.objects.select_for_update().filter(product_id=item.product_id).first()

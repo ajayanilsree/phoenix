@@ -6,7 +6,8 @@ from django.core.exceptions import ValidationError
 from django.utils.text import slugify
 
 from accounts.models import AgentProfile, StaffProfile, UserProfile
-from catalog.models import Category, Product
+from catalog.models import Category, Product, ProductVariant
+from django.forms import inlineformset_factory
 from inventory.models import InventoryRecord
 from orders.models import Order
 
@@ -30,6 +31,7 @@ def unique_slug_for(model, value, instance=None):
 class ProductManageForm(forms.ModelForm):
     stock = forms.IntegerField(min_value=0, required=False, initial=0)
     low_stock_threshold = forms.IntegerField(min_value=0, required=False, initial=5)
+    variant_count = forms.IntegerField(min_value=1, max_value=20, required=False)
 
     class Meta:
         model = Product
@@ -47,7 +49,8 @@ class ProductManageForm(forms.ModelForm):
             "colour",
             "finish",
             "features",
-            "applications",
+        "applications",
+            "variant_type",
         ]
         labels = {
             "full_description": "Product Description",
@@ -62,14 +65,19 @@ class ProductManageForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["compare_at_price"].required = True
         self.fields["category"].queryset = Category.objects.filter(is_active=True, parent__isnull=True).order_by("sort_order", "name")
         self.fields["subcategory"].queryset = Category.objects.filter(is_active=True, parent__isnull=False).select_related("parent").order_by("parent__sort_order", "sort_order", "name")
         self.fields["subcategory"].required = True
         if self.instance and self.instance.pk:
+            if self.instance.variant_type == Product.VARIANT_NONE and self.instance.has_variants:
+                self.instance.variant_type = Product.VARIANT_SIZE
+            self.fields["variant_type"].initial = self.instance.variant_type
             inventory = getattr(self.instance, "inventory", None)
             if inventory:
                 self.fields["stock"].initial = inventory.current_stock
                 self.fields["low_stock_threshold"].initial = inventory.low_stock_threshold
+            self.fields["variant_count"].initial = self.instance.variants.filter(is_active=True).count() or 1
 
     def clean(self):
         cleaned = super().clean()
@@ -85,10 +93,17 @@ class ProductManageForm(forms.ModelForm):
         subcategory = cleaned.get("subcategory")
         if category and subcategory and subcategory.parent_id != category.id:
             self.add_error("subcategory", "Select a subcategory that belongs to the selected category.")
+        if cleaned.get("variant_type") != Product.VARIANT_NONE and not cleaned.get("variant_count"):
+            self.add_error("variant_count", "Enter the number of variants.")
+        if cleaned.get("variant_type") == Product.VARIANT_SIZE and not (cleaned.get("size") or "").strip():
+            self.add_error("size", "Base Size is required for Size variants.")
+        if cleaned.get("variant_type") == Product.VARIANT_COLOR and not (cleaned.get("colour") or "").strip():
+            self.add_error("colour", "Base Color is required for Color variants.")
         return cleaned
 
     def save(self, commit=True):
         product = super().save(commit=False)
+        product.has_variants = product.variant_type != Product.VARIANT_NONE
         if not product.pk:
             product.slug = unique_slug_for(Product, product.name)
             product.is_active = True
@@ -96,6 +111,53 @@ class ProductManageForm(forms.ModelForm):
             product.save()
             self.save_m2m()
         return product
+
+
+class ProductVariantForm(forms.ModelForm):
+    class Meta:
+        model = ProductVariant
+        fields = ["sku", "size", "colour", "original_price", "selling_price", "stock", "low_stock_threshold"]
+        labels = {"colour": "Color", "original_price": "Original Price", "selling_price": "Discount Price / Selling Price"}
+
+    def clean(self):
+        cleaned = super().clean()
+        original = cleaned.get("original_price")
+        selling = cleaned.get("selling_price")
+        if original is not None and original < 0:
+            self.add_error("original_price", "Original price cannot be negative.")
+        if selling is not None and selling < 0:
+            self.add_error("selling_price", "Selling price cannot be negative.")
+        if original is not None and selling is not None and selling > original:
+            self.add_error("selling_price", "Selling price must be less than or equal to original price.")
+        return cleaned
+
+
+class BaseProductVariantFormSet(forms.BaseInlineFormSet):
+    def clean(self):
+        super().clean()
+        variant_type = getattr(self, "variant_type", Product.VARIANT_NONE)
+        base_value = (getattr(self, "base_value", "") or "").strip().casefold()
+        seen = set()
+        active_count = 0
+        for form in self.forms:
+            if not hasattr(form, "cleaned_data") or not form.cleaned_data or form.cleaned_data.get("DELETE"):
+                continue
+            active_count += 1
+            attribute = "colour" if variant_type == Product.VARIANT_COLOR else "size"
+            value = (form.cleaned_data.get(attribute) or "").strip()
+            if variant_type in {Product.VARIANT_SIZE, Product.VARIANT_COLOR} and not value:
+                form.add_error(attribute, f"{attribute.title()} is required for this product.")
+            key = value.casefold()
+            if base_value and key == base_value:
+                form.add_error(attribute, f"A variant with the same {attribute} as the base product already exists.")
+            if key in seen:
+                raise ValidationError(f"Duplicate {attribute} variant.")
+            seen.add(key)
+        if variant_type != Product.VARIANT_NONE and active_count == 0:
+            raise ValidationError("Add at least one active variant or turn off Product with Variants.")
+
+
+ProductVariantFormSet = inlineformset_factory(Product, ProductVariant, form=ProductVariantForm, formset=BaseProductVariantFormSet, extra=1, can_delete=True)
 
 
 class CategoryNameForm(forms.Form):

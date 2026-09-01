@@ -29,11 +29,28 @@ def add_to_cart(request, product_id):
     variant = None
     if variant_id:
         variant = get_object_or_404(ProductVariant, id=variant_id, product=product, is_active=True)
-    quantity = max(int(request.POST.get("quantity", 1)), 1)
+    elif product.has_variants:
+        messages.error(request, "Please select a product variant.")
+        return redirect(request.POST.get("next") or "cart_detail")
+    if variant and not product.has_variants:
+        messages.error(request, "This product does not accept variants.")
+        return redirect(request.POST.get("next") or "cart_detail")
+    try:
+        quantity = max(int(request.POST.get("quantity", 1)), 1)
+    except (TypeError, ValueError):
+        messages.error(request, "Enter a valid quantity.")
+        return redirect(request.POST.get("next") or "cart_detail")
+    available = variant.stock if variant else (product.inventory.current_stock if hasattr(product, "inventory") else 0)
+    if quantity > available:
+        messages.error(request, f"Only {max(available, 0)} units are currently available.")
+        return redirect(request.POST.get("next") or "cart_detail")
     cart = get_cart(request.user)
     item, created = CartItem.objects.get_or_create(cart=cart, product=product, variant=variant, defaults={"quantity": quantity})
     if not created:
         item.quantity += quantity
+        if item.quantity > available:
+            messages.error(request, f"Only {max(available, 0)} units are currently available.")
+            return redirect(request.POST.get("next") or "cart_detail")
         item.save(update_fields=["quantity", "updated_at"])
     messages.success(request, "Product added to cart.")
     return redirect(request.POST.get("next") or "cart_detail")
@@ -51,8 +68,12 @@ def update_cart_item(request, item_id):
     if quantity < 1:
         return JsonResponse({"success": False, "message": "Quantity must be at least 1."}, status=400)
 
-    inventory = InventoryRecord.objects.filter(variant_id=item.variant_id).first() if item.variant_id else None
-    if inventory is None:
+    if item.variant_id:
+        variant = item.variant
+        if quantity > variant.stock:
+            return JsonResponse({"success": False, "message": f"Only {max(variant.stock, 0)} units are available.", "quantity": item.quantity}, status=400)
+        inventory = None
+    else:
         inventory = InventoryRecord.objects.filter(product_id=item.product_id).first()
     if inventory is not None and quantity > inventory.current_stock:
         return JsonResponse({"success": False, "message": f"Only {max(inventory.current_stock, 0)} units are available.", "quantity": item.quantity}, status=400)

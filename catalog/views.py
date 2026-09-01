@@ -1,9 +1,11 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Avg, Count, Q
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
+import json
 
 from accounts.decorators import user_role
 from .forms import ProductReviewForm
@@ -136,6 +138,42 @@ def category_detail(request, slug):
 def product_detail(request, slug):
     product = get_object_or_404(product_queryset(), slug=slug)
     related = product_queryset().filter(category=product.category).exclude(id=product.id)[:4]
+    variants = list(product.variants.filter(is_active=True).prefetch_related("images"))
+    variant_data = [
+        {
+            "id": variant.id,
+            "name": variant.name,
+            "sku": variant.sku,
+            "size": variant.size,
+            "colour": variant.colour,
+            "thickness": variant.thickness,
+            "finish": variant.finish,
+            "price": str(variant.price),
+            "compare_price": str(variant.compare_price) if variant.compare_price else "",
+            "discount_percent": variant.discount_percent or 0,
+            "stock": variant.stock,
+            "images": [{"url": image.image.url, "alt": image.alt_text or product.name} for image in variant.images.all() if image.image],
+        }
+        for variant in variants
+    ]
+    base_image_data = [
+        {"url": image.image.url, "alt": image.alt_text or product.name}
+        for image in product.images.filter(variant__isnull=True)
+        if image.image
+    ]
+    base_inventory = getattr(product, "inventory", None)
+    base_option = {
+        "id": "base",
+        "option_type": "base",
+        "sku": product.sku,
+        "size": product.size,
+        "colour": product.colour,
+        "price": str(product.price),
+        "compare_price": str(product.compare_at_price) if product.compare_at_price else "",
+        "discount_percent": product.discount_percent or 0,
+        "stock": base_inventory.current_stock if base_inventory else 0,
+        "images": base_image_data,
+    }
     reviews = product.reviews.select_related("customer").all()[:10]
     review_summary = product.reviews.aggregate(average=Avg("rating"), count=Count("id"))
     own_review = None
@@ -154,6 +192,10 @@ def product_detail(request, slug):
             "review_count": review_summary["count"],
             "own_review": own_review,
             "review_form": review_form,
+            "variants": variants,
+            "variant_data_json": json.dumps(variant_data, cls=DjangoJSONEncoder),
+            "base_option_data_json": json.dumps(base_option, cls=DjangoJSONEncoder),
+            "base_image_data_json": json.dumps(base_image_data, cls=DjangoJSONEncoder),
         },
     )
 
