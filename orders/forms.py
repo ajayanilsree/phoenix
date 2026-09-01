@@ -60,7 +60,7 @@ class AgentPromoForm(forms.Form):
     promo_code = forms.CharField(
         label="Have a promo code?",
         max_length=20,
-        required=True,
+        required=False,
         widget=forms.TextInput(attrs={"placeholder": "Enter promo code"}),
     )
 

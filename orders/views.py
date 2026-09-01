@@ -218,7 +218,12 @@ def checkout(request):
             })
             promo_form = AgentPromoForm(request.POST)
             if promo_form.is_valid():
-                promo, error = resolve_agent_promo(promo_form.cleaned_data["promo_code"])
+                promo_code = promo_form.cleaned_data.get("promo_code", "")
+                if not promo_code:
+                    request.session.pop(PROMO_SESSION_KEY, None)
+                    messages.info(request, "Enter a promo code to apply.")
+                    return redirect("checkout")
+                promo, error = resolve_agent_promo(promo_code)
                 if promo:
                     request.session[PROMO_SESSION_KEY] = promo.agent_code
                     messages.success(request, f"Promo code applied — {percent_label(promo.discount_percentage)}% discount")

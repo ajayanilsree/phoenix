@@ -39,7 +39,7 @@
             <label for="{{ promo_form.promo_code.id_for_label }}">Have a promo code?</label>
             <div>
               {{ promo_form.promo_code }}
-              <button class="btn btn-secondary compact-btn" type="submit" name="action" value="apply_promo">Apply</button>
+              <button class="btn btn-secondary compact-btn" type="button" data-apply-promo>Apply</button>
             </div>
           </div>
         {% endif %}
@@ -61,6 +61,15 @@
   (() => {
     const form = document.querySelector("form.checkout-layout");
     const button = form?.querySelector("button[name=action][value=place_order]");
+    const promoButton = form?.querySelector("[data-apply-promo]");
+    promoButton?.addEventListener("click", () => {
+      const action = document.createElement("input");
+      action.type = "hidden";
+      action.name = "action";
+      action.value = "apply_promo";
+      form.appendChild(action);
+      HTMLFormElement.prototype.submit.call(form);
+    });
     form?.addEventListener("submit", (event) => {
       if (event.submitter !== button || button.disabled) return;
       button.disabled = true;
