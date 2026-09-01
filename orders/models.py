@@ -5,7 +5,12 @@ from django.db import models
 
 
 class Address(models.Model):
+    BILLING = "billing"
+    DELIVERY = "delivery"
+    ADDRESS_TYPE_CHOICES = [(BILLING, "Billing"), (DELIVERY, "Delivery")]
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="addresses")
+    address_type = models.CharField(max_length=12, choices=ADDRESS_TYPE_CHOICES, default=BILLING)
     full_name = models.CharField(max_length=140)
     phone = models.CharField(max_length=24)
     line1 = models.CharField(max_length=180)
@@ -52,6 +57,10 @@ class Order(models.Model):
         ("refunded", "Refunded"),
     ]
 
+    PAYMENT_METHOD_CHOICES = [
+        ("razorpay", "Razorpay"),
+    ]
+
     order_number = models.CharField(max_length=24, unique=True)
     customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="orders")
     agent = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, related_name="agent_orders", blank=True, null=True)
@@ -60,8 +69,13 @@ class Order(models.Model):
     agent_discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     subtotal_before_agent_discount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     shipping_address = models.ForeignKey(Address, on_delete=models.PROTECT, blank=True, null=True)
+    billing_address = models.ForeignKey(Address, on_delete=models.PROTECT, blank=True, null=True, related_name="billed_orders")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PENDING)
     payment_status = models.CharField(max_length=20, choices=PAYMENT_CHOICES, default="pending")
+    payment_method = models.CharField(max_length=30, choices=PAYMENT_METHOD_CHOICES, default="razorpay")
+    razorpay_order_id = models.CharField(max_length=80, blank=True)
+    razorpay_payment_id = models.CharField(max_length=80, blank=True)
+    razorpay_signature = models.CharField(max_length=160, blank=True)
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     delivery_charge = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     discount_total = models.DecimalField(max_digits=10, decimal_places=2, default=0)

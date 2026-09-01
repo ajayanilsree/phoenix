@@ -3,6 +3,68 @@ const menu = document.querySelector("[data-menu]");
 const preloader = document.getElementById("phoenix-preloader");
 const siteHeader = document.querySelector(".site-header");
 
+document.querySelectorAll("[data-cart-quantity-form]").forEach((form) => {
+  const input = form.querySelector("[data-cart-quantity]");
+  const status = form.querySelector("[data-cart-quantity-status]");
+  const lineTotal = form.closest(".cart-item")?.querySelector("[data-line-total]");
+  const cartSubtotal = document.getElementById("cart-subtotal") || document.querySelector("[data-cart-subtotal]");
+  const cartCount = document.querySelector("[data-cart-count]");
+  let timer;
+  let controller;
+  let requestNumber = 0;
+
+  const showStatus = (message, isError = false) => {
+    status.textContent = message;
+    status.classList.toggle("is-error", isError);
+  };
+
+  const updateQuantity = async () => {
+    const requested = input.value.trim();
+    const requestId = ++requestNumber;
+    controller?.abort();
+    controller = new AbortController();
+    input.disabled = true;
+    showStatus("Updating...");
+    try {
+      const response = await fetch(form.action, {
+        method: "POST",
+        credentials: "same-origin",
+        signal: controller.signal,
+        headers: { "X-CSRFToken": form.querySelector("[name=csrfmiddlewaretoken]").value, "X-Requested-With": "XMLHttpRequest" },
+        body: new URLSearchParams({ quantity: requested }),
+      });
+      const payload = await response.json();
+      if (requestId !== requestNumber) return;
+      if (!response.ok || !payload.success) throw new Error(payload.message || "Unable to update quantity. Please try again.");
+      input.value = payload.quantity;
+      input.dataset.lastValid = payload.quantity;
+      lineTotal.textContent = `₹${payload.item_subtotal}`;
+      cartSubtotal.textContent = `₹${payload.cart_subtotal}`;
+      if (cartCount) cartCount.textContent = payload.cart_count;
+      showStatus("");
+    } catch (error) {
+      if (error.name === "AbortError" || requestId !== requestNumber) return;
+      input.value = input.dataset.lastValid;
+      showStatus(error.message || "Unable to update quantity. Please try again.", true);
+    } finally {
+      if (requestId === requestNumber) {
+        input.disabled = false;
+        controller = null;
+      }
+    }
+  };
+
+  form.addEventListener("submit", (event) => event.preventDefault());
+  input.addEventListener("input", () => {
+    window.clearTimeout(timer);
+    timer = window.setTimeout(updateQuantity, 350);
+  });
+  input.addEventListener("change", () => {
+    window.clearTimeout(timer);
+    timer = window.setTimeout(updateQuantity, 250);
+  });
+});
+
 const dashboardSidebar = document.querySelector("[data-dashboard-sidebar]");
 const dashboardMenu = document.querySelector("[data-dashboard-menu]");
 const dashboardClose = document.querySelector("[data-dashboard-close]");

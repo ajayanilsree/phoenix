@@ -1,8 +1,12 @@
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from decimal import Decimal
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 
 from catalog.models import Product, ProductVariant
+from inventory.models import InventoryRecord
 from .models import Cart, CartItem
 
 
@@ -36,15 +40,28 @@ def add_to_cart(request, product_id):
 
 
 @login_required
+@require_POST
 def update_cart_item(request, item_id):
-    item = get_object_or_404(CartItem, id=item_id, cart__user=request.user)
-    quantity = int(request.POST.get("quantity", 1))
-    if quantity <= 0:
-        item.delete()
-    else:
-        item.quantity = quantity
-        item.save(update_fields=["quantity", "updated_at"])
-    return redirect("cart_detail")
+    item = get_object_or_404(CartItem.objects.select_related("cart", "product", "variant"), id=item_id, cart__user=request.user)
+    raw_quantity = request.POST.get("quantity", "")
+    try:
+        quantity = int(raw_quantity)
+    except (TypeError, ValueError):
+        return JsonResponse({"success": False, "message": "Enter a whole-number quantity."}, status=400)
+    if quantity < 1:
+        return JsonResponse({"success": False, "message": "Quantity must be at least 1."}, status=400)
+
+    inventory = InventoryRecord.objects.filter(variant_id=item.variant_id).first() if item.variant_id else None
+    if inventory is None:
+        inventory = InventoryRecord.objects.filter(product_id=item.product_id).first()
+    if inventory is not None and quantity > inventory.current_stock:
+        return JsonResponse({"success": False, "message": f"Only {max(inventory.current_stock, 0)} units are available.", "quantity": item.quantity}, status=400)
+
+    item.quantity = quantity
+    item.save(update_fields=["quantity", "updated_at"])
+    cart = item.cart
+    subtotal = cart.subtotal or Decimal("0.00")
+    return JsonResponse({"success": True, "quantity": item.quantity, "item_subtotal": f"{item.line_total:.2f}", "cart_subtotal": f"{subtotal:.2f}", "cart_count": cart.total_items})
 
 
 @login_required

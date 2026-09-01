@@ -3,24 +3,13 @@
 {% block heading %}My Address{% endblock %}
 {% block sidebar %}<a href="{% url 'customer_dashboard' %}">Overview</a><a href="{% url 'shop' %}">Shop</a><a href="{% url 'customer_orders' %}">My Orders</a><a href="{% url 'customer_profile' %}">Profile</a><a href="{% url 'customer_address' %}">Address</a>{% endblock %}
 {% block content %}
-{% if saved_address and not is_editing %}
-  <section class="panel address-panel">
-    <h2>My Address</h2>
-    <div class="address-display">
-      <strong>{{ saved_address.full_name }}</strong>
-      <span>{{ saved_address.phone }}</span>
-      <span>{{ saved_address.line1 }}</span>
-      {% if saved_address.line2 %}<span>{{ saved_address.line2 }}</span>{% endif %}
-      <span>{{ saved_address.city }}, {{ saved_address.district }}</span>
-      <span>{{ saved_address.state }} - {{ saved_address.postal_code }}</span>
-      <span>{{ saved_address.country }}</span>
-    </div>
-    <a class="btn btn-secondary" href="{% url 'customer_address' %}?edit=1">Edit Address</a>
-  </section>
-{% else %}
+{% if not address_type %}
+  <section class="panel address-panel"><h2>Billing Address</h2>{% if billing_address %}<div class="address-display"><strong>{{ billing_address.full_name }}</strong><span>{{ billing_address.phone }}</span><span>{{ billing_address.line1 }}</span>{% if billing_address.line2 %}<span>{{ billing_address.line2 }}</span>{% endif %}<span>{{ billing_address.city }}, {{ billing_address.district }}</span><span>{{ billing_address.state }} - {{ billing_address.postal_code }}</span><span>{{ billing_address.country }}</span></div><a class="btn btn-secondary" href="{% url 'customer_billing_address' %}?edit=1">Edit Billing Address</a>{% else %}<p class="decision-note">No billing address saved.</p><a class="btn btn-primary" href="{% url 'customer_billing_address' %}">Add Billing Address</a>{% endif %}</section>
+  <section class="panel address-panel"><h2>Delivery Address</h2>{% if delivery_address %}<div class="address-display"><strong>{{ delivery_address.full_name }}</strong><span>{{ delivery_address.phone }}</span><span>{{ delivery_address.line1 }}</span>{% if delivery_address.line2 %}<span>{{ delivery_address.line2 }}</span>{% endif %}<span>{{ delivery_address.city }}, {{ delivery_address.district }}</span><span>{{ delivery_address.state }} - {{ delivery_address.postal_code }}</span><span>{{ delivery_address.country }}</span></div><a class="btn btn-secondary" href="{% url 'customer_delivery_address' %}?edit=1">Edit Delivery Address</a>{% else %}<p class="decision-note">No default delivery address saved.</p><a class="btn btn-primary" href="{% url 'customer_delivery_address' %}">Add Delivery Address</a>{% endif %}</section>
+{% elif is_editing %}
   <form method="post" class="form-card">
     {% csrf_token %}
-    <h2>{% if saved_address %}Edit Delivery Address{% else %}Add Delivery Address{% endif %}</h2>
+    <h2>{% if saved_address %}Edit{% else %}Add{% endif %} {% if address_type == "billing" %}Billing{% else %}Delivery{% endif %} Address</h2>
     {% for field in form %}
       <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
       {{ field }}

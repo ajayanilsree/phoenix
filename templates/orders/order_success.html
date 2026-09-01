@@ -1,0 +1,18 @@
+{% extends "base/storefront.html" %}
+{% block title %}Order Confirmed | Phoenix{% endblock %}
+{% block content %}
+<section class="section order-success-section">
+  <div class="container order-success-card">
+    <p class="eyebrow">Payment confirmed</p>
+    <h1>Order confirmed</h1>
+    <p>Thank you for shopping with Phoenix Interior Hub. Your payment was received successfully.</p>
+    <dl class="order-success-details">
+      <div><dt>Order number</dt><dd>{{ order.order_number }}</dd></div>
+      <div><dt>Amount paid</dt><dd>₹{{ order.grand_total }}</dd></div>
+      <div><dt>Payment</dt><dd>{{ order.get_payment_status_display }} · {{ order.get_payment_method_display }}</dd></div>
+      {% if order.shipping_address %}<div><dt>Delivery to</dt><dd>{{ order.shipping_address.city }}, {{ order.shipping_address.state }}</dd></div>{% endif %}
+    </dl>
+    <a class="btn btn-primary" href="{% url 'customer_order_detail' order.order_number %}">View Order</a>
+  </div>
+</section>
+{% endblock %}

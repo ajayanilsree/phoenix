@@ -51,7 +51,9 @@ class CustomerAddressForm(AddressForm):
 
 
 class CheckoutAddressForm(AddressForm):
-    save_to_account = forms.BooleanField(required=False, label="Save this address to my account")
+    use_saved_delivery = forms.BooleanField(required=False, label="Use my saved delivery address")
+    use_billing_address = forms.BooleanField(required=False, label="Use my billing address as the delivery address")
+    save_delivery_address = forms.BooleanField(required=False, label="Save this as my default delivery address")
 
 
 class AgentPromoForm(forms.Form):
