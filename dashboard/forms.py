@@ -98,18 +98,38 @@ class ProductManageForm(forms.ModelForm):
         return product
 
 
-class CategoryManageForm(forms.ModelForm):
-    class Meta:
-        model = Category
-        fields = ["name", "parent", "description", "image", "is_active", "sort_order"]
-        widgets = {"description": forms.Textarea(attrs={"rows": 4})}
+class CategoryNameForm(forms.Form):
+    name = forms.CharField(
+        max_length=120,
+        label="Category Name",
+        required=True,
+        strip=True,
+        widget=forms.TextInput(attrs={"placeholder": "Enter category name"}),
+        error_messages={"required": "Category name is required."},
+    )
 
-    def save(self, commit=True):
-        category = super().save(commit=False)
-        category.slug = unique_slug_for(Category, category.name, instance=category)
-        if commit:
-            category.save()
-            self.save_m2m()
+    def __init__(self, *args, instance=None, parent=None, **kwargs):
+        self.instance = instance
+        self.parent = parent if parent is not None else getattr(instance, "parent", None)
+        super().__init__(*args, **kwargs)
+        if instance:
+            self.fields["name"].initial = instance.name
+
+    def clean_name(self):
+        name = self.cleaned_data["name"]
+        siblings = Category.objects.filter(parent=self.parent, name__iexact=name)
+        if self.instance:
+            siblings = siblings.exclude(pk=self.instance.pk)
+        if siblings.exists():
+            raise ValidationError("A category with this name already exists here.")
+        return name
+
+    def save(self):
+        category = self.instance or Category(parent=self.parent, is_active=True)
+        category.name = self.cleaned_data["name"]
+        if not category.pk:
+            category.slug = unique_slug_for(Category, category.name)
+        category.save()
         return category
 
 

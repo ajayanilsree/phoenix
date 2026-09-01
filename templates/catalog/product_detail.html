@@ -58,6 +58,13 @@
     <section><h2>Applications</h2><p>{{ product.applications|linebreaksbr|default:"Suitable applications can be configured per product." }}</p></section>
     <section><h2>Shipping</h2><p>Delivery charge, tax and shipping-zone rules require final Phoenix business approval.</p></section>
   </div>
+  <section class="container reviews-section" id="reviews">
+    <div class="reviews-header"><div><p class="eyebrow">Customer feedback</p><h2>Customer Reviews</h2></div><div class="review-summary"><strong>{% if review_average %}{{ review_average|floatformat:1 }}{% else %}0.0{% endif %} ★</strong><span>Based on {{ review_count }} review{{ review_count|pluralize }}</span></div></div>
+    {% if request.user.is_authenticated and review_form %}
+      <div class="review-write"><h3>{% if own_review %}Your Review{% else %}Write a Review{% endif %}</h3><form method="post" action="{% url 'product_review' product.slug %}" class="review-form">{% csrf_token %}<fieldset><legend>Your rating</legend><div class="review-stars">{% for radio in review_form.rating %}<span class="review-star-choice">{{ radio.tag }}<label for="{{ radio.id_for_label }}" aria-label="{{ radio.choice_label }} star{{ radio.choice_label|pluralize }}">★</label></span>{% endfor %}</div>{% for error in review_form.rating.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</fieldset><label for="{{ review_form.review.id_for_label }}">Your review{{ review_form.review }}<span class="review-counter"><span data-review-count>0</span> / 500</span></label>{% for error in review_form.review.errors %}<small class="field-error">{{ error }}</small>{% endfor %}<button class="btn btn-primary" type="submit">{% if own_review %}Update Review{% else %}Submit Review{% endif %}</button></form></div>
+    {% else %}<div class="review-signin"><p>Sign in to leave a review.</p><a class="btn btn-secondary" href="{% url 'login' %}?next={{ request.path|urlencode }}">Sign In</a></div>{% endif %}
+    <div class="review-list"><h3>Recent Reviews</h3>{% for review in reviews %}<article class="review-item"><div class="review-item-head"><div><strong>{{ review.customer.first_name|default:review.customer.username }}</strong><span>{{ review.created_at|date:"M d, Y" }}</span></div><span class="review-rating" aria-label="{{ review.rating }} out of 5 stars">{% for star in "12345" %}{% if forloop.counter <= review.rating %}★{% else %}☆{% endif %}{% endfor %}</span></div><p>{{ review.review }}</p></article>{% empty %}<p class="muted">No reviews yet. Be the first to review this product.</p>{% endfor %}</div>
+  </section>
   <div class="container section-head"><div><p class="eyebrow">Related</p><h2>Similar products</h2></div></div>
   <div class="container product-grid">{% for product in related_products %}{% include "partials/product_card.html" %}{% endfor %}</div>
 </section>
@@ -100,6 +107,28 @@
     gallery.addEventListener("touchend", (event) => { if (touchStartX === null) return; const distance = event.changedTouches[0].clientX - touchStartX; if (Math.abs(distance) > 45) distance < 0 ? next() : previous(); touchStartX = null; }, { passive: true });
     document.addEventListener("keydown", (event) => { if (event.key === "Escape" && lightbox && !lightbox.hidden) close(); if (lightbox && !lightbox.hidden && event.key === "ArrowRight") next(); if (lightbox && !lightbox.hidden && event.key === "ArrowLeft") previous(); });
     setImage(current);
+  })();
+</script>
+<script>
+  (() => {
+    const textarea = document.querySelector("[name='review']");
+    const counter = document.querySelector("[data-review-count]");
+    if (textarea && counter) {
+      const update = () => { counter.textContent = textarea.value.length; };
+      textarea.addEventListener("input", update);
+      update();
+    }
+    const stars = document.querySelector(".review-stars");
+    if (!stars) return;
+    const choices = Array.from(stars.querySelectorAll(".review-star-choice"));
+    let selected = choices.findIndex((choice) => choice.querySelector("input")?.checked) + 1;
+    const paint = (value) => choices.forEach((choice, index) => choice.querySelector("label")?.classList.toggle("is-filled", index < value));
+    choices.forEach((choice, index) => {
+      choice.addEventListener("mouseenter", () => paint(index + 1));
+      choice.querySelector("input")?.addEventListener("change", () => { selected = index + 1; paint(selected); });
+    });
+    stars.addEventListener("mouseleave", () => paint(selected));
+    paint(selected);
   })();
 </script>
 {% endblock %}

@@ -14,13 +14,12 @@ from django.views.decorators.cache import never_cache
 from accounts.models import AgentProfile, StaffProfile, UserProfile
 from accounts.decorators import user_role
 from accounts.forms import AdminLoginForm
-from catalog.models import Category, Product, ProductImage
-from catalog.signals import delete_stored_file_if_unreferenced
+from catalog.models import Category, Product, ProductImage, ProductReview
 from inventory.models import InventoryRecord, StockMovement
 from orders.models import Order, OrderItem
 from .forms import (
     AgentManageForm,
-    CategoryManageForm,
+    CategoryNameForm,
     EmployeeManageForm,
     InventoryUpdateForm,
     OrderStatusForm,
@@ -192,6 +191,27 @@ def products(request):
     )
 
 
+@never_cache
+def reviews(request):
+    blocked = require_admin(request)
+    if blocked:
+        return blocked
+    review_qs = ProductReview.objects.select_related("product", "customer").order_by("-created_at")
+    return render(request, "dashboard/admin/reviews.html", {"page_obj": paginate(request, review_qs, 20)})
+
+
+@never_cache
+def review_delete(request, review_id):
+    blocked = require_admin(request)
+    if blocked:
+        return blocked
+    review = get_object_or_404(ProductReview, pk=review_id)
+    if request.method == "POST":
+        review.delete()
+        messages.success(request, "Review deleted.")
+    return redirect("admin_reviews")
+
+
 def save_product_images(product, files):
     existing_count = product.images.count()
     incoming = files.getlist("images") if hasattr(files, "getlist") else []
@@ -304,15 +324,27 @@ def category_form(request, category_id=None):
     if blocked:
         return blocked
     category = get_object_or_404(Category, pk=category_id) if category_id else None
-    previous_image_name = category.image.name if category and category.image else ""
-    form = CategoryManageForm(request.POST or None, request.FILES or None, instance=category)
+    form = CategoryNameForm(request.POST or None, instance=category)
     if request.method == "POST" and form.is_valid():
         form.save()
-        if category and previous_image_name and category.image.name != previous_image_name:
-            delete_stored_file_if_unreferenced(previous_image_name, category.image.storage)
-        messages.success(request, "Category saved.")
+        messages.success(request, "Category updated successfully." if category else "Category added successfully.")
         return redirect("admin_categories")
-    return render(request, "dashboard/admin/category_form.html", {"form": form, "category": category})
+    return render(request, "dashboard/admin/category_form.html", {"form": form, "category": category, "parent_category": category.parent if category else None})
+
+
+@never_cache
+def subcategory_form(request, category_id, subcategory_id=None):
+    blocked = require_admin(request)
+    if blocked:
+        return blocked
+    parent = get_object_or_404(Category, pk=category_id, parent__isnull=True)
+    subcategory = get_object_or_404(Category, pk=subcategory_id, parent=parent) if subcategory_id else None
+    form = CategoryNameForm(request.POST or None, instance=subcategory, parent=parent)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Subcategory updated successfully." if subcategory else "Subcategory added successfully.")
+        return redirect("admin_categories")
+    return render(request, "dashboard/admin/category_form.html", {"form": form, "category": subcategory, "parent_category": parent, "is_subcategory": True})
 
 
 @never_cache

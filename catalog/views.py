@@ -1,8 +1,13 @@
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import Q
-from django.shortcuts import get_object_or_404, render
+from django.db.models import Avg, Count, Q
+from django.core.exceptions import PermissionDenied
+from django.shortcuts import get_object_or_404, redirect, render
 
-from .models import Category, Product
+from accounts.decorators import user_role
+from .forms import ProductReviewForm
+from .models import Category, Product, ProductReview
 
 
 CATALOG_LABELS = {
@@ -131,4 +136,55 @@ def category_detail(request, slug):
 def product_detail(request, slug):
     product = get_object_or_404(product_queryset(), slug=slug)
     related = product_queryset().filter(category=product.category).exclude(id=product.id)[:4]
-    return render(request, "catalog/product_detail.html", {"product": product, "related_products": related})
+    reviews = product.reviews.select_related("customer").all()[:10]
+    review_summary = product.reviews.aggregate(average=Avg("rating"), count=Count("id"))
+    own_review = None
+    review_form = None
+    if request.user.is_authenticated and user_role(request.user) == "customer":
+        own_review = product.reviews.filter(customer=request.user).first()
+        review_form = ProductReviewForm(instance=own_review)
+    return render(
+        request,
+        "catalog/product_detail.html",
+        {
+            "product": product,
+            "related_products": related,
+            "reviews": reviews,
+            "review_average": review_summary["average"],
+            "review_count": review_summary["count"],
+            "own_review": own_review,
+            "review_form": review_form,
+        },
+    )
+
+
+@login_required
+def product_review(request, slug):
+    if user_role(request.user) != "customer":
+        raise PermissionDenied
+    if request.method != "POST":
+        return redirect("product_detail", slug=slug)
+    product = get_object_or_404(Product.objects.filter(is_active=True), slug=slug)
+    existing = ProductReview.objects.filter(product=product, customer=request.user).first()
+    form = ProductReviewForm(request.POST, instance=existing)
+    if form.is_valid():
+        review = form.save(commit=False)
+        review.product = product
+        review.customer = request.user
+        review.save()
+        messages.success(request, "Thank you for your review.")
+        return redirect(f"{product.get_absolute_url()}#reviews")
+    messages.error(request, "Please correct the review form and try again.")
+    return render(
+        request,
+        "catalog/product_detail.html",
+        {
+            "product": product,
+            "related_products": product_queryset().filter(category=product.category).exclude(id=product.id)[:4],
+            "reviews": product.reviews.select_related("customer").all()[:10],
+            "review_average": product.reviews.aggregate(average=Avg("rating"))["average"],
+            "review_count": product.reviews.count(),
+            "own_review": existing,
+            "review_form": form,
+        },
+    )

@@ -1,0 +1,12 @@
+{% extends "base/dashboard.html" %}
+{% block title %}Reviews | Phoenix Interior Hub{% endblock %}
+{% block heading %}Reviews{% endblock %}
+{% block sidebar %}{% include "dashboard/admin/_sidebar.html" %}{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="page-panel-head"><div><h2>Customer Reviews</h2><p class="muted">Review customer feedback and remove inappropriate submissions.</p></div></div>
+  <div class="table-wrap"><table><thead><tr><th>Product</th><th>Customer</th><th>Rating</th><th>Review</th><th>Date</th><th>Actions</th></tr></thead><tbody>
+    {% for review in page_obj %}<tr><td>{{ review.product.name }}</td><td>{{ review.customer.get_full_name|default:review.customer.username }}</td><td>{{ review.rating }}/5</td><td>{{ review.review }}</td><td>{{ review.created_at|date:"M d, Y" }}</td><td><form method="post" action="{% url 'admin_review_delete' review.id %}" onsubmit="return confirm('Delete this review?');">{% csrf_token %}<button class="btn btn-danger compact-btn" type="submit">Delete</button></form></td></tr>{% empty %}<tr><td colspan="6">No reviews yet.</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+{% endblock %}

@@ -19,7 +19,7 @@
   </div>
   <div class="container main-header">
     <button class="icon-button menu-toggle" type="button" aria-label="Open menu" data-menu-toggle><span aria-hidden="true"></span></button>
-    <a class="brand" href="{% url 'home' %}"><img src="{% static 'img/phoenix-logo-blue.png' %}" alt="Phoenix Interior Hub"></a>
+    <a class="brand" href="{% url 'home' %}"><img class="phoenix-brand-logo" src="{% static 'img/phoenix-logo-blue.png' %}" alt="Phoenix Interior Hub"></a>
     <form class="search-form" action="{% url 'shop' %}" method="get">
       <label class="sr-only" for="site-search">Search products</label>
       <input id="site-search" name="q" type="search" placeholder="Search boards, fittings, panels, accessories..." value="{{ query|default:'' }}">
@@ -57,71 +57,10 @@
         <a class="shop-trigger {% if '/shop/' in request.path %}is-active{% endif %}" href="{% url 'shop' %}" aria-haspopup="true" aria-expanded="false" data-shop-trigger>Shop</a>
         <div class="catalog-dropdown" data-catalog-menu>
           <div class="catalog-main-list" data-catalog-main-list>
-            <button class="catalog-main-item" type="button" data-catalog-panel="boards-panels"><span class="catalog-label">Boards &amp; Panels</span><span aria-hidden="true">&gt;</span></button>
-            <button class="catalog-main-item" type="button" data-catalog-panel="kitchen-fittings-accessories"><span class="catalog-label">Kitchen Fittings &amp; Accessories</span><span aria-hidden="true">&gt;</span></button>
-            <button class="catalog-main-item" type="button" data-catalog-panel="wardrobe-bed-fittings"><span class="catalog-label">Wardrobe &amp; Bed Fittings</span><span aria-hidden="true">&gt;</span></button>
-            <button class="catalog-main-item" type="button" data-catalog-panel="modular-furniture"><span class="catalog-label">Modular Furniture</span><span aria-hidden="true">&gt;</span></button>
-            <button class="catalog-main-item" type="button" data-catalog-panel="others"><span class="catalog-label">Others</span><span aria-hidden="true">&gt;</span></button>
+            {% for category in nav_categories %}<a class="catalog-main-item" href="{% url 'shop_catalogue_main' category.slug %}" data-catalog-panel="{{ category.id }}" data-has-panel="{% if category.nav_children %}true{% else %}false{% endif %}"><span class="catalog-label">{{ category.name }}</span>{% if category.nav_children %}<span aria-hidden="true">&gt;</span>{% endif %}</a>{% empty %}<span class="catalog-empty">No categories available.</span>{% endfor %}
           </div>
           <div class="catalog-panel-list" data-catalog-panel-list>
-            <div class="catalog-panel" data-catalog-panel-content="boards-panels">
-              <button class="catalog-back" type="button" data-catalog-back>&lt; Shop</button>
-              <p>Boards &amp; Panels</p>
-              <a href="/shop/boards-panels/pvc-foamboards/">PVC Foamboards</a>
-              <a href="/shop/boards-panels/wpc-foamboards/">WPC Foamboards</a>
-              <a href="/shop/boards-panels/charcoal-louvers/">Charcoal Louvers</a>
-              <a href="/shop/boards-panels/wpc-panels/">WPC Panels</a>
-              <a href="/shop/boards-panels/bamboo-charcoal-panels/">Bamboo Charcoal Panels</a>
-            </div>
-            <div class="catalog-panel" data-catalog-panel-content="kitchen-fittings-accessories">
-              <button class="catalog-back" type="button" data-catalog-back>&lt; Shop</button>
-              <p>Kitchen Fittings &amp; Accessories</p>
-              <a href="/shop/kitchen-fittings-accessories/wire-baskets/">Wire Baskets</a>
-              <a href="/shop/kitchen-fittings-accessories/drawer-system/">Drawer System</a>
-              <a href="/shop/kitchen-fittings-accessories/hinges/">Hinges</a>
-              <a href="/shop/kitchen-fittings-accessories/telescopic-channels/">Telescopic Channels</a>
-              <a href="/shop/kitchen-fittings-accessories/pantry-units/">Pantry Units</a>
-              <a href="/shop/kitchen-fittings-accessories/corner-units/">Corner Units</a>
-              <a href="/shop/kitchen-fittings-accessories/pull-system/">Pull &amp; System</a>
-            </div>
-            <div class="catalog-panel" data-catalog-panel-content="wardrobe-bed-fittings">
-              <button class="catalog-back" type="button" data-catalog-back>&lt; Shop</button>
-              <p>Wardrobe &amp; Bed Fittings</p>
-              <a href="/shop/wardrobe-bed-fittings/sliding-door-fittings/">Sliding Door Fittings</a>
-              <a href="/shop/wardrobe-bed-fittings/wardrobe-accessories/">Wardrobe Accessories</a>
-              <a href="/shop/wardrobe-bed-fittings/cabinet-handles-knob/">Cabinet Handles &amp; Knob</a>
-              <a href="/shop/wardrobe-bed-fittings/bed-fitting/">Bed Fitting</a>
-              <a href="/shop/wardrobe-bed-fittings/furniture-lights/">Furniture Lights</a>
-            </div>
-            <div class="catalog-panel" data-catalog-panel-content="modular-furniture">
-              <button class="catalog-back" type="button" data-catalog-back>&lt; Shop</button>
-              <p>Modular Furniture</p>
-              <a href="/shop/modular-furniture/modular-kitchen/">Modular Kitchen</a>
-              <a href="/shop/modular-furniture/wardrobe/">Wardrobe</a>
-              <a href="/shop/modular-furniture/tv-unit/">TV Unit</a>
-              <a href="/shop/modular-furniture/table-top-wash-basin/">Table Top Wash Basin</a>
-              <a href="/shop/modular-furniture/bed-with-bed-rest/">Bed with Bed Rest</a>
-              <a href="/shop/modular-furniture/dressing-unit/">Dressing Unit</a>
-              <a href="/shop/modular-furniture/customised-sofas/">Customised Sofas</a>
-              <a href="/shop/modular-furniture/prayer-unit/">Prayer Unit</a>
-              <a href="/shop/modular-furniture/partition-walls/">Partition Walls</a>
-              <a href="/shop/modular-furniture/recliner/">Recliner</a>
-              <a href="/shop/modular-furniture/dining-table/">Dining Table</a>
-              <a href="/shop/modular-furniture/wall-panelling/">Wall Panelling</a>
-            </div>
-            <div class="catalog-panel" data-catalog-panel-content="others">
-              <button class="catalog-back" type="button" data-catalog-back>&lt; Shop</button>
-              <p>Others</p>
-              <a href="/shop/others/g-profiles/">G Profiles</a>
-              <a href="/shop/others/glass-shutter-profiles/">Glass Shutter Profiles</a>
-              <a href="/shop/others/general-hardware/">General Hardware</a>
-              <a href="/shop/others/adhesives/">Adhesives</a>
-              <a href="/shop/others/door-window-fittings/">Door &amp; Window Fittings</a>
-              <a href="/shop/others/home-decor/">Home Decor</a>
-              <a href="/shop/others/space-saving-furniture/">Space Saving Furniture</a>
-              <a href="/shop/others/tools/">Tools</a>
-              <a href="/shop/others/indoor-plants/">Indoor Plants</a>
-            </div>
+            {% for category in nav_categories %}{% if category.nav_children %}<div class="catalog-panel" data-catalog-panel-content="{{ category.id }}"><button class="catalog-back" type="button" data-catalog-back>&lt; Shop</button><a class="catalog-panel-title" href="{% url 'shop_catalogue_main' category.slug %}">{{ category.name }}</a>{% for child in category.nav_children %}<a href="{% url 'shop_catalogue_sub' category.slug child.slug %}">{{ child.name }}</a>{% endfor %}</div>{% endif %}{% endfor %}
           </div>
         </div>
       </div>

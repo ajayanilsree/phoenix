@@ -48,16 +48,16 @@ if (preloader) {
     }
 
     preloader.classList.add("is-leaving");
-    window.setTimeout(() => {
-      preloader.remove();
-    }, reduceMotion ? 180 : 900);
+      window.setTimeout(() => {
+        preloader.remove();
+      }, reduceMotion ? 180 : 560);
   };
 
   if (!shouldPlayIntro) {
     revealSite(true);
   } else {
-    const minDuration = reduceMotion ? 220 : 1450;
-    const maxDuration = reduceMotion ? 700 : 2400;
+    const minDuration = reduceMotion ? 220 : 650;
+    const maxDuration = reduceMotion ? 700 : 3600;
     const startedAt = performance.now();
     let didReveal = false;
 
@@ -181,7 +181,12 @@ document.querySelectorAll("[data-shop-catalog]").forEach((catalog) => {
     };
     item.addEventListener("mouseenter", activate);
     item.addEventListener("focus", activate);
-    item.addEventListener("click", activate);
+    item.addEventListener("click", (event) => {
+      if (isCompact() && item.dataset.hasPanel === "true") {
+        event.preventDefault();
+        activate();
+      }
+    });
     item.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
         closeCatalog();
