@@ -30,6 +30,7 @@ urlpatterns = [
     path("employees/", views.employees, name="admin_employees"),
     path("employees/add/", views.employee_form, name="admin_employee_add"),
     path("employees/<int:user_id>/edit/", views.employee_form, name="admin_employee_edit"),
+    path("employees/<int:user_id>/remove/", views.employee_remove, name="admin_employee_remove"),
     path("agents/", views.agents, name="admin_agents"),
     path("agents/add/", views.agent_form, name="admin_agent_add"),
     path("agents/<int:user_id>/edit/", views.agent_form, name="admin_agent_edit"),

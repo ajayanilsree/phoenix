@@ -203,6 +203,14 @@ class InventoryUpdateForm(forms.ModelForm):
         fields = ["current_stock", "low_stock_threshold"]
 
 
+class ProductVariantInventoryUpdateForm(forms.ModelForm):
+    note = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows": 2}))
+
+    class Meta:
+        model = ProductVariant
+        fields = ["stock", "low_stock_threshold"]
+
+
 class OrderStatusForm(forms.ModelForm):
     class Meta:
         model = Order

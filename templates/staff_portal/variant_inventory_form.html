@@ -1,0 +1,15 @@
+{% extends "base/dashboard.html" %}
+{% block title %}Update Variant Inventory | Phoenix{% endblock %}
+{% block heading %}Update Inventory{% endblock %}
+{% block sidebar %}{% include "staff_portal/_sidebar.html" %}{% endblock %}
+{% block content %}
+<section class="panel">
+  <h2>{{ variant.product.name }} · {{ variant.name }}</h2>
+  <p class="muted">{{ variant.sku }}</p>
+  <form class="management-form" method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button class="btn btn-primary" type="submit">Save Inventory</button>
+  </form>
+</section>
+{% endblock %}

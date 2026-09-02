@@ -180,6 +180,7 @@ class ProductVariant(models.Model):
     stock = models.IntegerField(default=0, validators=[MinValueValidator(0)])
     low_stock_threshold = models.PositiveIntegerField(default=5)
     is_active = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["product__name", "name"]

@@ -9,6 +9,7 @@ from django.db import transaction
 from django.db.models import Count, Q, Sum
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.cache import never_cache
 
 from accounts.models import AgentProfile, StaffProfile, UserProfile
@@ -32,6 +33,14 @@ def require_admin(request):
     if not request.user.is_authenticated:
         return redirect("phoenix_admin_login")
     if user_role(request.user) != "admin":
+        raise PermissionDenied
+    return None
+
+
+def require_staff(request):
+    if not request.user.is_authenticated:
+        return redirect("employee_login")
+    if user_role(request.user) != UserProfile.STAFF:
         raise PermissionDenied
     return None
 
@@ -225,8 +234,8 @@ def save_product_images(product, files):
 
 
 @never_cache
-def product_form(request, product_id=None):
-    blocked = require_admin(request)
+def product_form(request, product_id=None, staff_portal=False):
+    blocked = require_staff(request) if staff_portal else require_admin(request)
     if blocked:
         return blocked
     product = get_object_or_404(Product, pk=product_id) if product_id else None
@@ -286,7 +295,7 @@ def product_form(request, product_id=None):
                         product_image.full_clean()
                         product_image.save()
             messages.success(request, "Product updated successfully." if product_id else "Product created successfully.")
-            return redirect("admin_products")
+            return redirect("employee_products" if staff_portal else "admin_products")
         except (ValueError, ValidationError) as error:
             form.add_error(None, str(error))
     subcategory_options = {}
@@ -304,26 +313,33 @@ def product_form(request, product_id=None):
             "variant_formset": variant_formset,
             "base_image_count": product.images.filter(variant__isnull=True).count() if product else 0,
             "subcategory_options_json": json.dumps(subcategory_options, cls=DjangoJSONEncoder),
+            "staff_portal": staff_portal,
+            "form_action_url": reverse(
+                "employee_product_edit" if staff_portal and product else
+                "employee_product_add" if staff_portal else
+                "admin_product_edit" if product else "admin_product_add",
+                args=[product.id] if product else [],
+            ),
         },
     )
 
 
 @never_cache
-def product_image_delete(request, product_id, image_id):
-    blocked = require_admin(request)
+def product_image_delete(request, product_id, image_id, staff_portal=False):
+    blocked = require_staff(request) if staff_portal else require_admin(request)
     if blocked:
         return blocked
     if request.method != "POST":
-        return redirect("admin_product_edit", product_id=product_id)
+        return redirect("employee_product_edit" if staff_portal else "admin_product_edit", product_id=product_id)
     image = get_object_or_404(ProductImage, pk=image_id, product_id=product_id)
     image.delete()
     messages.success(request, "Product image removed.")
-    return redirect("admin_product_edit", product_id=product_id)
+    return redirect("employee_product_edit" if staff_portal else "admin_product_edit", product_id=product_id)
 
 
 @never_cache
-def product_toggle(request, product_id):
-    blocked = require_admin(request)
+def product_toggle(request, product_id, staff_portal=False):
+    blocked = require_staff(request) if staff_portal else require_admin(request)
     if blocked:
         return blocked
     product = get_object_or_404(Product, pk=product_id)
@@ -331,7 +347,7 @@ def product_toggle(request, product_id):
         product.is_active = not product.is_active
         product.save(update_fields=["is_active", "updated_at"])
         messages.success(request, f"{product.name} was {'activated' if product.is_active else 'deactivated'} successfully.")
-    return redirect("admin_products")
+    return redirect("employee_products" if staff_portal else "admin_products")
 
 
 @never_cache
@@ -487,6 +503,23 @@ def employees(request):
 @never_cache
 def employee_form(request, user_id=None):
     return people_form(request, EmployeeManageForm, UserProfile.STAFF, "dashboard/admin/employee_form.html", "admin_employees", user_id)
+
+
+@never_cache
+def employee_remove(request, user_id):
+    blocked = require_admin(request)
+    if blocked:
+        return blocked
+    employee = get_object_or_404(User.objects.select_related("profile"), pk=user_id, profile__role=UserProfile.STAFF)
+    if request.method != "POST":
+        return redirect("admin_employees")
+    if employee.pk == request.user.pk:
+        messages.error(request, "You cannot remove your own account.")
+        return redirect("admin_employees")
+    employee.is_active = False
+    employee.save(update_fields=["is_active"])
+    messages.success(request, "Employee account removed successfully.")
+    return redirect("admin_employees")
 
 
 @never_cache
