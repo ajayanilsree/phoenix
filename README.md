@@ -70,17 +70,17 @@ SECRET_KEY=use-a-long-random-secret
 DEBUG=False
 CLOUDINARY_URL=cloudinary://...
 EMAIL_HOST=smtp-relay.brevo.com
-EMAIL_PORT=587
+EMAIL_PORT=2525
 EMAIL_HOST_USER=...
 EMAIL_HOST_PASSWORD=...
-EMAIL_USE_TLS=True
-DEFAULT_FROM_EMAIL=phoenixinteriorhub@gmail.com
+EMAIL_USE_TLS=False
+DEFAULT_FROM_EMAIL=Phoenix Interior Hub <noreply@phoenixinteriorhub.com>
 PUBLIC_SITE_URL=https://www.phoenixinteriorhub.com
 ```
 
 `DATABASE_URL` should be the Internal Database URL for a PostgreSQL database attached to the service. Never commit it or any other secret. `db.sqlite3` is for local development only and is ignored by Git.
 
-Customer password-reset email uses Django SMTP settings in production. Set `EMAIL_HOST`, `EMAIL_HOST_USER`, and `EMAIL_HOST_PASSWORD` to the credentials for the chosen mail provider. `EMAIL_PORT`, `EMAIL_USE_TLS`, `EMAIL_USE_SSL`, `DEFAULT_FROM_EMAIL`, and `PUBLIC_SITE_URL` may be adjusted to match that provider and domain. Local development defaults to Django's console email backend.
+Customer password-reset email uses Brevo SMTP settings in production. Set `EMAIL_HOST_USER` and `EMAIL_HOST_PASSWORD` to the Brevo credentials in Render. Production always uses Django's SMTP backend, even if an old `EMAIL_BACKEND` environment variable is still present. Local development defaults to Django's console email backend.
 
 Use these Render commands:
 
