@@ -1,0 +1,16 @@
+{% extends "base/storefront.html" %}
+{% block title %}Verify Your Email | Phoenix{% endblock %}
+{% block content %}
+<section class="auth-page">
+  <div class="auth-card">
+    <p class="eyebrow">Secure access</p>
+    <h1>Verify Your Email</h1>
+    <p class="muted">Enter the six-digit verification code sent to your registered email address. It expires in 10 minutes.</p>
+    {% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}
+    {% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+    <form method="post">{% csrf_token %}<label for="otp">Verification Code</label><input id="otp" name="otp" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required><button class="btn btn-primary wide" type="submit">Verify Code</button></form>
+    <form method="post" action="{% url 'resend_otp' %}" class="auth-secondary-form">{% csrf_token %}<button class="auth-help-link" type="submit">Resend Code</button></form>
+    <p><a href="{% url 'login' %}">Back to Login</a></p>
+  </div>
+</section>
+{% endblock %}

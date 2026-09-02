@@ -190,5 +190,19 @@ CHATBOT_ENABLED = env_bool("CHATBOT_ENABLED", True)
 CHATBOT_MAX_HISTORY = env_int("CHATBOT_MAX_HISTORY", 8)
 CHATBOT_MAX_MESSAGE_LENGTH = env_int("CHATBOT_MAX_MESSAGE_LENGTH", 750)
 
+EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend" if DEBUG else "django.core.mail.backends.smtp.EmailBackend").strip()
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp-relay.brevo.com").strip()
+EMAIL_PORT = env_int("EMAIL_PORT", 587)
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "").strip()
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "").strip()
+EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
+EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "Phoenix Interior Hub <noreply@phoenixinteriorhub.com>").strip()
+EMAIL_TIMEOUT = 10
+PUBLIC_SITE_URL = os.environ.get(
+    "PUBLIC_SITE_URL",
+    "http://127.0.0.1:8000" if DEBUG else "https://www.phoenixinteriorhub.com",
+).strip().rstrip("/")
+
 RAZORPAY_KEY_ID = os.environ.get("RAZORPAY_KEY_ID", "").strip()
 RAZORPAY_KEY_SECRET = os.environ.get("RAZORPAY_KEY_SECRET", "").strip()

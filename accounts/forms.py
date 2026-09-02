@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth import authenticate
-from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.contrib.auth.forms import AuthenticationForm, SetPasswordForm, UserCreationForm
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 
@@ -34,6 +34,27 @@ class CustomerRegistrationForm(UserCreationForm):
     class Meta:
         model = User
         fields = ("first_name", "last_name", "email", "username", "password1", "password2")
+
+
+class CustomerPasswordResetRequestForm(forms.Form):
+    username = forms.CharField(max_length=150, label="Username")
+    email = forms.EmailField(label="Email")
+
+    def clean_username(self):
+        return self.cleaned_data["username"].strip()
+
+
+class CustomerSetPasswordForm(SetPasswordForm):
+    new_password1 = forms.CharField(
+        label="New Password",
+        strip=False,
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+    )
+    new_password2 = forms.CharField(
+        label="Confirm Password",
+        strip=False,
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+    )
 
 
 class RoleLoginForm(PhoenixLoginForm):

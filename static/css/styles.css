@@ -531,6 +531,7 @@ body.site-revealed .site-footer {
 .check-row input { width: auto; min-height: auto; }
 .auth-page { min-height: 620px; display: grid; place-items: center; background: var(--bg); padding: 42px 16px; }
 .auth-card { width: min(460px, 100%); padding: 28px; }
+.auth-help-link { color: var(--navy); font-size: .9rem; font-weight: 700; margin-top: -4px; }
 .role-auth-body { min-height: 100vh; background: var(--bg); }
 .role-auth-page { min-height: 100vh; display: grid; place-items: center; padding: 34px 16px; }
 .role-auth-card { width: min(450px, 100%); display: grid; gap: 12px; padding: 30px; border: 1px solid var(--border); border-radius: 14px; background: var(--white); box-shadow: var(--shadow); }

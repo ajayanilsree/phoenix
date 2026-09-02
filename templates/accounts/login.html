@@ -12,6 +12,7 @@
       {% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}
     {% endfor %}
     {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+    <a class="auth-help-link" href="{% url 'forgot_password' %}">Forgot Password?</a>
     <button class="btn btn-primary wide" type="submit">Login</button>
     <p>New customer? <a href="{% url 'register' %}">Create an account</a></p>
   </form>
