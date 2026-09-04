@@ -116,8 +116,9 @@ class ProductManageForm(forms.ModelForm):
 class ProductVariantForm(forms.ModelForm):
     class Meta:
         model = ProductVariant
-        fields = ["sku", "size", "colour", "original_price", "selling_price", "stock", "low_stock_threshold"]
-        labels = {"colour": "Color", "original_price": "Original Price", "selling_price": "Discount Price / Selling Price"}
+        fields = ["name", "description", "sku", "size", "colour", "unit_type", "original_price", "selling_price", "stock", "low_stock_threshold"]
+        labels = {"name": "Variant Name", "description": "Variant Product Description", "colour": "Color", "unit_type": "Unit Type", "original_price": "Original Price", "selling_price": "Discount Price / Selling Price"}
+        widgets = {"description": forms.Textarea(attrs={"rows": 3, "placeholder": "Describe this variant..."})}
 
     def clean(self):
         cleaned = super().clean()

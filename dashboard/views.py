@@ -277,7 +277,8 @@ def product_form(request, product_id=None, staff_portal=False):
                         continue
                     variant = variant_form.instance
                     variant.variant_type = product.variant_type
-                    variant.name = variant.colour if product.variant_type == Product.VARIANT_COLOR else variant.size
+                    if not variant.name:
+                        variant.name = variant.colour if product.variant_type == Product.VARIANT_COLOR else variant.size
                     if product.variant_type == Product.VARIANT_COLOR:
                         variant.size = ""
                     else:

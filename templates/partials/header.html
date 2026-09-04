@@ -19,7 +19,7 @@
   </div>
   <div class="container main-header">
     <button class="icon-button menu-toggle" type="button" aria-label="Open menu" data-menu-toggle><span aria-hidden="true"></span></button>
-    <a class="brand" href="{% url 'home' %}"><img class="phoenix-brand-logo" src="{% static 'img/phoenix-logo-blue.png' %}" alt="Phoenix Interior Hub"></a>
+    <a class="brand" href="{% url 'home' %}"><img class="phoenix-brand-logo" src="{% static 'img/phoenix-logo-brown.png' %}" alt="Phoenix Interior Hub"></a>
     <form class="search-form" action="{% url 'shop' %}" method="get">
       <label class="sr-only" for="site-search">Search products</label>
       <input id="site-search" name="q" type="search" placeholder="Search boards, fittings, panels, accessories..." value="{{ query|default:'' }}">

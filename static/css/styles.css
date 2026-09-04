@@ -965,6 +965,40 @@ th { color: var(--muted); font-size: .86rem; }
   .category-art img, .space-card img, .product-card-image, .product-quick-view { transition: none; }
 }
 
+/* Shop cards keep their own responsive rhythm instead of inheriting the
+   compact homepage product rules at narrow widths. */
+@media (max-width: 1199px) {
+  .shop-product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 767px) {
+  .shop-hero { padding: 40px 0; }
+  .shop-hero h1 { font-size: clamp(2.2rem, 10vw, 3.2rem); line-height: 1.08; }
+  .shop-hero p:last-child { max-width: 42rem; }
+  .shop-section { padding-top: 48px; }
+  .shop-layout { display: block; }
+  .shop-results { width: 100%; min-width: 0; }
+  .results-bar { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .results-bar p { max-width: 100%; }
+  .mobile-shop-actions { width: 100%; }
+  .mobile-filter-trigger, .mobile-sort-trigger { display: inline-flex; min-height: 42px; }
+  .mobile-shop-actions .btn { flex: 1 1 0; }
+  .shop-product-grid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .shop-product-grid .product-card { min-width: 0; }
+  .shop-product-grid .product-card-image-wrapper { height: auto; aspect-ratio: 1 / 1; }
+  .shop-product-grid .product-card-image { object-fit: contain; }
+  .shop-product-grid .product-card-body { padding: 16px; }
+  .shop-product-grid .product-card h3 { min-height: 0; max-width: 100%; font-size: 1.05rem; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+  .shop-product-grid .product-card form { grid-template-columns: minmax(0, 1fr) minmax(0, auto); }
+  .shop-product-grid .product-card form .btn { min-width: 0; padding-inline: 12px; }
+  .shop-product-grid .product-card form .btn-ghost { display: inline-flex; }
+  .filters.is-mobile-open { width: 100%; max-width: 100%; box-sizing: border-box; }
+}
+
+@media (max-width: 359px) {
+  .shop-product-grid .product-card form { grid-template-columns: 1fr; }
+}
+
 /* Compact project handoff and footer treatment. */
 .project-cta { padding: 72px 0; background: var(--navy); background-image: none; border-bottom: 1px solid rgba(255,255,255,.1); }
 .project-cta-inner { grid-template-columns: minmax(0, 1.65fr) minmax(220px, .9fr); gap: 48px; }
@@ -1295,4 +1329,28 @@ form.checkout-layout > .checkout-summary-column > .place-order-button {
   .order-success-card { padding: 28px 20px; }
   .order-success-details div { align-items: start; flex-direction: column; gap: 4px; }
   .order-success-details dd { text-align: left; }
+}
+
+/* Keep each actual variant independently scannable in the shared admin forms. */
+.variant-row {
+  margin-top: 18px;
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--white);
+}
+.variant-row-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  color: var(--navy);
+}
+.variant-description-field { grid-column: 1 / -1; }
+.variant-description-field textarea { min-height: 86px; resize: vertical; }
+@media (max-width: 720px) {
+  .variant-row { padding: 16px; }
+  .variant-row-heading { align-items: flex-start; flex-direction: column; gap: 4px; }
+  .variant-description-field { grid-column: auto; }
 }

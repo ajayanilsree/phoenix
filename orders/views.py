@@ -168,7 +168,7 @@ def create_or_update_pending_order(request, cart, form, summary, delivery_addres
                 variant_colour=item.variant.colour if item.variant else "",
                 variant_thickness=item.variant.thickness if item.variant else "",
                 variant_finish=item.variant.finish if item.variant else "",
-                unit_type=item.product.unit_type,
+                unit_type=(item.variant.unit_type or item.product.unit_type) if item.variant else item.product.unit_type,
                 unit_price=item.unit_price,
                 quantity=item.quantity,
                 line_total=item.line_total,

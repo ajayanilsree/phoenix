@@ -25,12 +25,16 @@ def cart_detail(request):
 @login_required
 def add_to_cart(request, product_id):
     product = get_object_or_404(Product, id=product_id, is_active=True)
-    variant_id = request.POST.get("variant")
+    option_type = request.POST.get("option_type", "base")
+    variant_id = request.POST.get("variant") or request.POST.get("variant_id")
     variant = None
-    if variant_id:
+    if option_type == "variant":
+        if not variant_id:
+            messages.error(request, "Please select a product variant.")
+            return redirect(request.POST.get("next") or "cart_detail")
         variant = get_object_or_404(ProductVariant, id=variant_id, product=product, is_active=True)
-    elif product.has_variants:
-        messages.error(request, "Please select a product variant.")
+    elif option_type != "base" or variant_id:
+        messages.error(request, "Invalid product option.")
         return redirect(request.POST.get("next") or "cart_detail")
     if variant and not product.has_variants:
         messages.error(request, "This product does not accept variants.")

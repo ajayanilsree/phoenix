@@ -24,7 +24,7 @@
       <div class="detail-price">
         {% if product.has_discount %}<span>₹{{ product.compare_at_price }}</span>{% endif %}
         <strong>₹{{ product.price }}</strong>
-        <small>/ {{ product.get_unit_type_display }}</small>
+        <small data-variant-unit>/ {{ product.get_unit_type_display }}</small>
         {% if product.discount_percent %}<em>{{ product.discount_percent }}% OFF</em>{% endif %}
       </div>
       <p class="stock">Availability: {% if product.inventory.current_stock > 0 %}In stock{% else %}Out of stock{% endif %}</p>
@@ -32,7 +32,7 @@
       <form action="{% url 'add_to_cart' product.id %}" method="post" class="buy-form">
         {% csrf_token %}
         <input type="hidden" name="next" value="{{ request.get_full_path }}">
-        {% if product.has_variants and variants %}<div class="variant-selectors" data-variant-selectors></div><input type="hidden" name="variant" data-selected-variant>{% endif %}
+        {% if product.has_variants and variants %}<div class="variant-selectors" data-variant-selectors></div><input type="hidden" name="option_type" value="base" data-selected-option-type><input type="hidden" name="variant" value="" data-selected-variant>{% endif %}
         <div class="spec-grid">
           {% if product.variant_type != "size" and product.size %}<span><strong>Size</strong>{{ product.size }}</span>{% endif %}
           {% if product.thickness %}<span><strong>Thickness</strong>{{ product.thickness }}</span>{% endif %}
@@ -47,7 +47,7 @@
     </div>
   </div>
   <div class="container detail-tabs">
-    <section><h2>Description</h2><p>{{ product.full_description|default:product.short_description }}</p></section>
+    <section><h2>Description</h2><p data-variant-description>{{ product.full_description|default:product.short_description }}</p></section>
     <section><h2>Specifications</h2><dl>{% for key, value in product.specifications.items %}<dt>{{ key }}</dt><dd>{{ value }}</dd>{% empty %}<dt>Status</dt><dd>Detailed specs require final business data.</dd>{% endfor %}</dl></section>
     <section><h2>Features</h2><p>{{ product.features|linebreaksbr|default:"Feature details can be added by product managers." }}</p></section>
     <section><h2>Applications</h2><p>{{ product.applications|linebreaksbr|default:"Suitable applications can be configured per product." }}</p></section>
@@ -74,14 +74,17 @@
     const baseImages = JSON.parse(document.getElementById("base-image-data").textContent || "[]");
     const selectors = document.querySelector("[data-variant-selectors]");
     const hidden = document.querySelector("[data-selected-variant]");
+    const optionType = document.querySelector("[data-selected-option-type]");
     const price = document.querySelector(".detail-price");
     const stock = document.querySelector(".purchase-panel .stock");
     const sku = document.querySelector(".purchase-panel .sku");
+    const description = document.querySelector("[data-variant-description]");
+    const unit = document.querySelector("[data-variant-unit]");
     const add = document.querySelector("[data-add-variant-to-cart]");
     const buyNow = document.querySelector("[data-variant-buy-now]");
     if (!data.length || !selectors || !hidden) return;
     const field = "{{ product.variant_type }}" === "color" ? "colour" : "size";
-    const optionsData = [base, ...data].filter((option) => option[field]);
+    const optionsData = [base, ...data].filter((option) => option.option_type === "base" || option[field]);
     const labelText = field === "size" ? "Select Size" : "Select Color";
     const heading = document.createElement("p");
     heading.className = "variant-selector-label";
@@ -97,7 +100,8 @@
       button.className = "variant-card";
       button.dataset.optionType = variant.option_type || "variant";
       button.dataset.variantId = variant.option_type === "base" ? "" : variant.id;
-      button.textContent = variant[field];
+      const label = variant[field] || variant.name || "Base product";
+      button.textContent = variant.option_type === "base" ? `${label} (Base)` : label;
       button.setAttribute("aria-pressed", "false");
       if (variant.stock <= 0) {
         button.classList.add("is-unavailable");
@@ -126,8 +130,11 @@
         return;
       }
       hidden.value = selected.option_type === "base" ? "" : selected.id;
+      if (optionType) optionType.value = selected.option_type === "base" ? "base" : "variant";
       if (sku) sku.textContent = `SKU ${selected.sku}`;
-      price.innerHTML = `${selected.compare_price ? `<span>₹${selected.compare_price}</span>` : ""}<strong>₹${selected.price}</strong><small>/ {{ product.get_unit_type_display }}</small>${selected.discount_percent ? `<em>${selected.discount_percent}% OFF</em>` : ""}`;
+      if (description && selected.description) description.textContent = selected.description;
+      if (unit) unit.textContent = `/ ${selected.unit_type || "{{ product.get_unit_type_display }}"}`;
+      price.innerHTML = `${selected.compare_price ? `<span>₹${selected.compare_price}</span>` : ""}<strong>₹${selected.price}</strong><small data-variant-unit>/ ${selected.unit_type || "{{ product.get_unit_type_display }}"}</small>${selected.discount_percent ? `<em>${selected.discount_percent}% OFF</em>` : ""}`;
       stock.textContent = selected.stock > 0 ? "Availability: In stock" : "Availability: Out of stock";
       add.disabled = selected.stock <= 0;
       if (buyNow) buyNow.disabled = selected.stock <= 0;
