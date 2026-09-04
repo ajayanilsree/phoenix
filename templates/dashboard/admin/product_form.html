@@ -39,6 +39,7 @@
             <label class="variant-description-field">{{ variant_form.description.label }}{{ variant_form.description }}{% for error in variant_form.description.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>
             <label>{{ variant_form.sku.label }}{{ variant_form.sku }}{% for error in variant_form.sku.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>
             <label>{{ variant_form.size.label }}{{ variant_form.size }}</label>
+            <label>{{ variant_form.thickness.label }}{{ variant_form.thickness }}</label>
             <label>{{ variant_form.colour.label }}{{ variant_form.colour }}</label>
             <label>{{ variant_form.unit_type.label }}{{ variant_form.unit_type }}{% for error in variant_form.unit_type.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>
             <label>{{ variant_form.original_price.label }}{{ variant_form.original_price }}</label>
@@ -143,7 +144,7 @@
         row.querySelectorAll(".form-grid > label").forEach((label) => {
         const field = label.querySelector("input, select, textarea");
         const name = field?.name || "";
-        label.hidden = (name.includes("-size") && toggle.value !== "size") || (name.includes("-colour") && toggle.value !== "color") || name.includes("-thickness") || name.includes("-finish");
+        label.hidden = (name.includes("-size") && toggle.value !== "size") || (name.includes("-colour") && toggle.value !== "color") || name.includes("-finish");
         });
       });
     };

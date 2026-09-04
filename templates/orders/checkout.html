@@ -22,7 +22,7 @@
     <div class="checkout-summary-column">
       <aside class="summary-card">
       <h2>Order summary</h2>
-      {% for item in cart.items.all %}<p><span>{{ item.product.name }}{% if item.variant %} - {% if item.variant.size %}{{ item.variant.size }}{% elif item.variant.colour %}{{ item.variant.colour }}{% else %}{{ item.variant.name }}{% endif %} · {% if item.variant.unit_type %}{{ item.variant.get_unit_type_display }}{% else %}{{ item.product.get_unit_type_display }}{% endif %}{% endif %} x {{ item.quantity }}</span><strong>₹{{ item.line_total }}</strong></p>{% endfor %}
+      {% for item in cart.items.all %}<p><span>{% if item.variant and item.variant.name %}{{ item.variant.name }}{% else %}{{ item.product.name }}{% endif %}{% if item.variant %} - {% if item.variant.size %}{{ item.variant.size }}{% elif item.variant.colour %}{{ item.variant.colour }}{% else %}{{ item.variant.name }}{% endif %} · {% if item.variant.unit_type %}{{ item.variant.get_unit_type_display }}{% else %}{{ item.product.get_unit_type_display }}{% endif %}{% endif %} x {{ item.quantity }}</span><strong>₹{{ item.line_total }}</strong></p>{% endfor %}
       <hr>
       <p><span>Subtotal</span><strong>₹{{ summary.subtotal }}</strong></p>
       <div class="promo-box">

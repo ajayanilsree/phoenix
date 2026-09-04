@@ -19,8 +19,8 @@
     </div>
     <div class="purchase-panel">
       <p class="eyebrow">{{ product.category.name }}</p>
-      <h1>{{ product.name }}</h1>
-      <p class="sku">SKU {{ product.sku }}</p>
+      <h1 data-selected-product-name>{{ product.name }}</h1>
+      <p class="sku" data-variant-sku>SKU {{ product.sku }}</p>
       <div class="detail-price">
         {% if product.has_discount %}<span>₹{{ product.compare_at_price }}</span>{% endif %}
         <strong>₹{{ product.price }}</strong>
@@ -33,12 +33,7 @@
         {% csrf_token %}
         <input type="hidden" name="next" value="{{ request.get_full_path }}">
         {% if product.has_variants and variants %}<div class="variant-selectors" data-variant-selectors></div><input type="hidden" name="option_type" value="base" data-selected-option-type><input type="hidden" name="variant" value="" data-selected-variant>{% endif %}
-        <div class="spec-grid">
-          {% if product.variant_type != "size" and product.size %}<span><strong>Size</strong>{{ product.size }}</span>{% endif %}
-          {% if product.thickness %}<span><strong>Thickness</strong>{{ product.thickness }}</span>{% endif %}
-          {% if product.finish %}<span><strong>Finish</strong>{{ product.finish }}</span>{% endif %}
-          {% if product.variant_type != "color" and product.colour %}<span><strong>Colour</strong>{{ product.colour }}</span>{% endif %}
-        </div>
+        <div class="spec-grid" data-variant-specs></div>
         <label>Quantity</label>
         <input type="number" name="quantity" min="1" value="1">
         <button class="btn btn-primary wide" type="submit" data-add-variant-to-cart {% if product.has_variants and variants %}disabled{% endif %}>Add to Cart</button>
@@ -77,7 +72,9 @@
     const optionType = document.querySelector("[data-selected-option-type]");
     const price = document.querySelector(".detail-price");
     const stock = document.querySelector(".purchase-panel .stock");
-    const sku = document.querySelector(".purchase-panel .sku");
+    const sku = document.querySelector("[data-variant-sku]");
+    const productName = document.querySelector("[data-selected-product-name]");
+    const specs = document.querySelector("[data-variant-specs]");
     const description = document.querySelector("[data-variant-description]");
     const unit = document.querySelector("[data-variant-unit]");
     const add = document.querySelector("[data-add-variant-to-cart]");
@@ -132,8 +129,20 @@
       hidden.value = selected.option_type === "base" ? "" : selected.id;
       if (optionType) optionType.value = selected.option_type === "base" ? "base" : "variant";
       if (sku) sku.textContent = `SKU ${selected.sku}`;
-      if (description && selected.description) description.textContent = selected.description;
+      if (productName) productName.textContent = selected.option_type === "base" ? base.name : (selected.name?.trim() || base.name);
+      if (description) description.textContent = selected.description || base.description || "";
       if (unit) unit.textContent = `/ ${selected.unit_type || "{{ product.get_unit_type_display }}"}`;
+      if (specs) {
+        const value = (key, fallback = "") => selected[key] || fallback;
+        specs.replaceChildren();
+        [["Size", value("size", base.size)], ["Thickness", value("thickness", base.thickness)], ["Colour", value("colour", base.colour)], ["Unit Type", selected.unit_type || base.unit_type]].filter(([, item]) => item).forEach(([label, item]) => {
+          const entry = document.createElement("span");
+          const heading = document.createElement("strong");
+          heading.textContent = label;
+          entry.append(heading, document.createTextNode(item));
+          specs.appendChild(entry);
+        });
+      }
       price.innerHTML = `${selected.compare_price ? `<span>₹${selected.compare_price}</span>` : ""}<strong>₹${selected.price}</strong><small data-variant-unit>/ ${selected.unit_type || "{{ product.get_unit_type_display }}"}</small>${selected.discount_percent ? `<em>${selected.discount_percent}% OFF</em>` : ""}`;
       stock.textContent = selected.stock > 0 ? "Availability: In stock" : "Availability: Out of stock";
       add.disabled = selected.stock <= 0;

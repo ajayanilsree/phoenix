@@ -279,10 +279,6 @@ def product_form(request, product_id=None, staff_portal=False):
                     variant.variant_type = product.variant_type
                     if not variant.name:
                         variant.name = variant.colour if product.variant_type == Product.VARIANT_COLOR else variant.size
-                    if product.variant_type == Product.VARIANT_COLOR:
-                        variant.size = ""
-                    else:
-                        variant.colour = ""
                     update_fields = ["variant_type", "name", "size", "colour"]
                     if hasattr(variant, "updated_at"):
                         update_fields.append("updated_at")
