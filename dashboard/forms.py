@@ -38,11 +38,15 @@ class ProductManageForm(forms.ModelForm):
         fields = [
             "name",
             "sku",
+            "hsn_code",
             "category",
             "subcategory",
             "full_description",
             "compare_at_price",
             "price",
+            "promo_price",
+            "subpromo_price",
+            "agent_redeem_percentage",
             "unit_type",
             "size",
             "thickness",
@@ -56,6 +60,9 @@ class ProductManageForm(forms.ModelForm):
             "full_description": "Product Description",
             "compare_at_price": "Original Price",
             "price": "Discount Price / Selling Price",
+            "promo_price": "Promo Price",
+            "subpromo_price": "Sub Promo Price",
+            "agent_redeem_percentage": "Agent Redeem Percentage (%)",
         }
         widgets = {
             "full_description": forms.Textarea(attrs={"rows": 5}),
@@ -89,6 +96,12 @@ class ProductManageForm(forms.ModelForm):
             self.add_error("compare_at_price", "Original price must be greater than zero.")
         if original is not None and selling is not None and selling > original:
             self.add_error("price", "Discount price must be less than or equal to original price.")
+        promo = cleaned.get("promo_price")
+        subpromo = cleaned.get("subpromo_price")
+        if promo is not None and selling is not None and promo > selling:
+            self.add_error("promo_price", "Promo price must be less than or equal to selling price.")
+        if subpromo is not None and promo is not None and subpromo > promo:
+            self.add_error("subpromo_price", "Sub promo price must be less than or equal to promo price.")
         category = cleaned.get("category")
         subcategory = cleaned.get("subcategory")
         if category and subcategory and subcategory.parent_id != category.id:
@@ -116,7 +129,7 @@ class ProductManageForm(forms.ModelForm):
 class ProductVariantForm(forms.ModelForm):
     class Meta:
         model = ProductVariant
-        fields = ["name", "description", "sku", "size", "thickness", "colour", "unit_type", "original_price", "selling_price", "stock", "low_stock_threshold"]
+        fields = ["name", "description", "sku", "hsn_code", "size", "thickness", "colour", "unit_type", "original_price", "selling_price", "promo_price", "subpromo_price", "agent_redeem_percentage", "stock", "low_stock_threshold"]
         labels = {"name": "Variant Name", "description": "Variant Product Description", "colour": "Color", "unit_type": "Unit Type", "original_price": "Original Price", "selling_price": "Discount Price / Selling Price"}
         widgets = {"description": forms.Textarea(attrs={"rows": 3, "placeholder": "Describe this variant..."})}
 
@@ -128,6 +141,12 @@ class ProductVariantForm(forms.ModelForm):
             self.add_error("original_price", "Original price cannot be negative.")
         if selling is not None and selling < 0:
             self.add_error("selling_price", "Selling price cannot be negative.")
+        promo = cleaned.get("promo_price")
+        subpromo = cleaned.get("subpromo_price")
+        if promo is not None and selling is not None and promo > selling:
+            self.add_error("promo_price", "Promo price must be less than or equal to selling price.")
+        if subpromo is not None and promo is not None and subpromo > promo:
+            self.add_error("subpromo_price", "Sub promo price must be less than or equal to promo price.")
         if original is not None and selling is not None and selling > original:
             self.add_error("selling_price", "Selling price must be less than or equal to original price.")
         return cleaned
@@ -304,22 +323,13 @@ class EmployeeManageForm(UserManageForm):
 class AgentManageForm(UserManageForm):
     role = UserProfile.AGENT
     agent_code = forms.CharField(max_length=20, required=False, help_text="Leave blank to generate automatically.")
-    discount_percentage = forms.DecimalField(
-        label="Discount Percentage",
-        min_value=Decimal("0.00"),
-        max_value=Decimal("100.00"),
-        max_digits=5,
-        decimal_places=2,
-        required=False,
-        initial=Decimal("0.00"),
-        help_text="Enter a value from 0 to 100.",
-    )
+    subpromo_code = forms.CharField(max_length=20, required=False)
 
     def __init__(self, *args, instance=None, **kwargs):
         super().__init__(*args, instance=instance, **kwargs)
         if instance and hasattr(instance, "agent_profile"):
             self.fields["agent_code"].initial = instance.agent_profile.agent_code
-            self.fields["discount_percentage"].initial = instance.agent_profile.discount_percentage
+            self.fields["subpromo_code"].initial = instance.agent_profile.subpromo_code
 
     def clean_agent_code(self):
         code = self.cleaned_data.get("agent_code", "").strip().upper()
@@ -331,11 +341,21 @@ class AgentManageForm(UserManageForm):
                 raise ValidationError("Agent code already exists.")
         return code
 
+    def clean_subpromo_code(self):
+        code = self.cleaned_data.get("subpromo_code", "").strip().upper()
+        if code:
+            profiles = AgentProfile.objects.filter(subpromo_code__iexact=code)
+            if self.instance and hasattr(self.instance, "agent_profile"):
+                profiles = profiles.exclude(pk=self.instance.agent_profile.pk)
+            if profiles.exists():
+                raise ValidationError("Sub promo code already exists.")
+        return code
+
     def save(self, created_by=None):
         user = super().save(created_by=created_by)
         agent_profile, _ = AgentProfile.objects.get_or_create(user=user, defaults={"created_by": created_by})
         if self.cleaned_data.get("agent_code"):
             agent_profile.agent_code = self.cleaned_data["agent_code"]
-        agent_profile.discount_percentage = self.cleaned_data.get("discount_percentage") or Decimal("0.00")
-        agent_profile.save(update_fields=["agent_code", "discount_percentage", "updated_at"])
+        agent_profile.subpromo_code = self.cleaned_data.get("subpromo_code") or None
+        agent_profile.save(update_fields=["agent_code", "subpromo_code", "updated_at"])
         return user

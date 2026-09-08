@@ -67,6 +67,11 @@ class Order(models.Model):
     agent_code_snapshot = models.CharField(max_length=20, blank=True)
     agent_discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     agent_discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    promo_code_snapshot = models.CharField(max_length=20, blank=True)
+    subpromo_code_snapshot = models.CharField(max_length=20, blank=True)
+    wallet_points_redeemed = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    wallet_discount_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    agent_reward_points = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     subtotal_before_agent_discount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     shipping_address = models.ForeignKey(Address, on_delete=models.PROTECT, blank=True, null=True)
     billing_address = models.ForeignKey(Address, on_delete=models.PROTECT, blank=True, null=True, related_name="billed_orders")
@@ -99,17 +104,29 @@ class Order(models.Model):
 
 
 class OrderItem(models.Model):
+    NORMAL = "normal"
+    PROMO = "promo"
+    SUBPROMO = "subpromo"
+    PRICING_TYPE_CHOICES = [(NORMAL, "Normal"), (PROMO, "Promo"), (SUBPROMO, "Subpromo")]
+
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
     product = models.ForeignKey("catalog.Product", on_delete=models.SET_NULL, blank=True, null=True)
     variant = models.ForeignKey("catalog.ProductVariant", on_delete=models.SET_NULL, blank=True, null=True)
     product_name = models.CharField(max_length=180)
     sku = models.CharField(max_length=80)
+    hsn_code = models.CharField(max_length=20, blank=True)
     selected_variant = models.CharField(max_length=160, blank=True)
     variant_sku = models.CharField(max_length=80, blank=True)
     variant_size = models.CharField(max_length=80, blank=True)
     variant_colour = models.CharField(max_length=80, blank=True)
     variant_thickness = models.CharField(max_length=80, blank=True)
     variant_finish = models.CharField(max_length=100, blank=True)
+    selling_price_snapshot = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    promo_price_snapshot = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    subpromo_price_snapshot = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    agent_redeem_percentage_snapshot = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    applied_price_snapshot = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    pricing_type = models.CharField(max_length=12, choices=PRICING_TYPE_CHOICES, default=NORMAL)
     unit_type = models.CharField(max_length=30)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
     quantity = models.PositiveIntegerField(default=1)

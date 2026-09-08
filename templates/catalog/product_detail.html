@@ -135,7 +135,7 @@
       if (specs) {
         const value = (key, fallback = "") => selected[key] || fallback;
         specs.replaceChildren();
-        [["Size", value("size", base.size)], ["Thickness", value("thickness", base.thickness)], ["Colour", value("colour", base.colour)], ["Unit Type", selected.unit_type || base.unit_type]].filter(([, item]) => item).forEach(([label, item]) => {
+        [["Size", value("size", base.size)], ["Thickness", value("thickness", base.thickness)], ["Colour", value("colour", base.colour)], ["Unit Type", selected.unit_type || base.unit_type], ["HSN Code", selected.hsn_code || base.hsn_code]].filter(([, item]) => item).forEach(([label, item]) => {
           const entry = document.createElement("span");
           const heading = document.createElement("strong");
           heading.textContent = label;

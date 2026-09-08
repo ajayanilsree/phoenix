@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.validators import FileExtensionValidator, MinValueValidator
+from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
 from django.db import models
 from django.urls import reverse
 
@@ -52,12 +52,16 @@ class Product(models.Model):
     name = models.CharField(max_length=180)
     slug = models.SlugField(unique=True)
     sku = models.CharField(max_length=80, unique=True)
+    hsn_code = models.CharField(max_length=20, blank=True)
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name="products")
     subcategory = models.ForeignKey(Category, on_delete=models.PROTECT, related_name="subcategory_products", blank=True, null=True)
     short_description = models.CharField(max_length=240, blank=True)
     full_description = models.TextField(blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     compare_at_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    promo_price = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    subpromo_price = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    agent_redeem_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0, validators=[MinValueValidator(0), MaxValueValidator(100)])
     unit_type = models.CharField(max_length=30, choices=UNIT_CHOICES, default="piece")
     size = models.CharField(max_length=80, blank=True)
     thickness = models.CharField(max_length=80, blank=True)
@@ -97,6 +101,10 @@ class Product(models.Model):
                 raise ValidationError({"compare_at_price": "Original price must be greater than zero."})
             if self.price is not None and self.compare_at_price < self.price:
                 raise ValidationError({"compare_at_price": "Original price should be greater than or equal to selling price."})
+        if self.promo_price is not None and self.price is not None and self.promo_price > self.price:
+            raise ValidationError({"promo_price": "Promo price must be less than or equal to selling price."})
+        if self.subpromo_price is not None and self.promo_price is not None and self.subpromo_price > self.promo_price:
+            raise ValidationError({"subpromo_price": "Sub promo price must be less than or equal to promo price."})
 
     @property
     def primary_image(self):
@@ -169,10 +177,14 @@ class ProductVariant(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="variants")
     variant_type = models.CharField(max_length=12, choices=Product.VARIANT_TYPE_CHOICES, default=Product.VARIANT_NONE)
     sku = models.CharField(max_length=80, unique=True)
+    hsn_code = models.CharField(max_length=20, blank=True)
     name = models.CharField(max_length=120)
     description = models.TextField(blank=True)
     size = models.CharField(max_length=80, blank=True)
     unit_type = models.CharField(max_length=30, choices=Product.UNIT_CHOICES, blank=True)
+    promo_price = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    subpromo_price = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    agent_redeem_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0, validators=[MinValueValidator(0), MaxValueValidator(100)])
     thickness = models.CharField(max_length=80, blank=True)
     colour = models.CharField(max_length=80, blank=True)
     finish = models.CharField(max_length=100, blank=True)
@@ -216,6 +228,11 @@ class ProductVariant(models.Model):
             raise ValidationError({"original_price": "Original price cannot be negative."})
         if self.original_price is not None and self.selling_price is not None and self.selling_price > self.original_price:
             raise ValidationError({"selling_price": "Selling price must be less than or equal to original price."})
+        selling_price = self.selling_price if self.selling_price is not None else (self.product.price + self.price_delta if self.product_id else None)
+        if self.promo_price is not None and selling_price is not None and self.promo_price > selling_price:
+            raise ValidationError({"promo_price": "Promo price must be less than or equal to selling price."})
+        if self.subpromo_price is not None and self.promo_price is not None and self.subpromo_price > self.promo_price:
+            raise ValidationError({"subpromo_price": "Sub promo price must be less than or equal to promo price."})
 
 
 class ProductAttribute(models.Model):

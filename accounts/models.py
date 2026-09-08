@@ -33,6 +33,7 @@ class UserProfile(models.Model):
 class AgentProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="agent_profile")
     agent_code = models.CharField(max_length=20, unique=True, blank=True, null=True)
+    subpromo_code = models.CharField(max_length=20, unique=True, blank=True, null=True)
     discount_percentage = models.DecimalField(
         max_digits=5,
         decimal_places=2,
@@ -61,6 +62,27 @@ class AgentProfile(models.Model):
         else:
             self.agent_code = self.agent_code.strip().upper()
         super().save(*args, **kwargs)
+
+
+class AgentWallet(models.Model):
+    agent = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="wallet")
+    balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+class AgentWalletTransaction(models.Model):
+    EARN = "earn"
+    REDEEM = "redeem"
+    ADJUSTMENT = "adjustment"
+    REVERSAL = "reversal"
+    TYPE_CHOICES = [(EARN, "Earn"), (REDEEM, "Redeem"), (ADJUSTMENT, "Adjustment"), (REVERSAL, "Reversal")]
+    wallet = models.ForeignKey(AgentWallet, on_delete=models.CASCADE, related_name="transactions")
+    transaction_type = models.CharField(max_length=20, choices=TYPE_CHOICES)
+    points = models.DecimalField(max_digits=12, decimal_places=2)
+    order = models.ForeignKey("orders.Order", on_delete=models.SET_NULL, blank=True, null=True, related_name="wallet_transactions")
+    reference = models.CharField(max_length=80, unique=True)
+    description = models.CharField(max_length=240)
+    created_at = models.DateTimeField(auto_now_add=True)
 
 
 class StaffProfile(models.Model):

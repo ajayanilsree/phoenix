@@ -1,4 +1,5 @@
 from django.contrib.auth import login
+from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db.models import Q, Sum
@@ -6,9 +7,11 @@ from django.shortcuts import redirect, render
 from django.views.decorators.cache import never_cache
 
 from accounts.decorators import user_role
+from accounts.models import AgentWallet
 from accounts.forms import AgentLoginForm
 from catalog.models import Product
-from orders.models import Order
+from orders.forms import AddressForm
+from orders.models import Address, Order
 
 
 def paginate(request, queryset, per_page=12):
@@ -39,8 +42,9 @@ def dashboard(request):
         return redirect("agent_login")
     if user_role(request.user) != "agent":
         raise PermissionDenied
-    orders = Order.objects.filter(agent=request.user).select_related("customer")
+    orders = Order.objects.filter(Q(agent=request.user) | Q(customer=request.user)).select_related("customer")
     agent_profile = getattr(request.user, "agent_profile", None)
+    wallet = AgentWallet.objects.filter(agent=request.user).first()
     query = request.GET.get("q", "").strip()
     lookup_results = Order.objects.none()
     if query:
@@ -58,6 +62,8 @@ def dashboard(request):
             "completed_orders": orders.filter(status="delivered").count(),
             "orders_using_code": orders_using_code.count(),
             "total_sales_through_code": orders_using_code.aggregate(total=Sum("grand_total"))["total"] or 0,
+            "wallet": wallet,
+            "wallet_transactions": wallet.transactions.order_by("-created_at")[:10] if wallet else [],
         },
     )
 
@@ -76,12 +82,21 @@ def shop(request):
 
 
 @never_cache
+def shop_redirect(request):
+    if not request.user.is_authenticated:
+        return redirect("agent_login")
+    if user_role(request.user) != "agent":
+        raise PermissionDenied
+    return redirect("shop")
+
+
+@never_cache
 def orders(request):
     if not request.user.is_authenticated:
         return redirect("agent_login")
     if user_role(request.user) != "agent":
         raise PermissionDenied
-    qs = Order.objects.filter(agent=request.user).select_related("customer")
+    qs = Order.objects.filter(Q(agent=request.user) | Q(customer=request.user)).select_related("customer")
     query = request.GET.get("q", "").strip()
     if query:
         qs = qs.filter(Q(order_number__icontains=query) | Q(customer__email__icontains=query))
@@ -105,3 +120,42 @@ def profile(request):
     if user_role(request.user) != "agent":
         raise PermissionDenied
     return render(request, "agents/profile.html")
+
+
+@never_cache
+def address(request, address_type=None):
+    if not request.user.is_authenticated:
+        return redirect("agent_login")
+    if user_role(request.user) != "agent":
+        raise PermissionDenied
+    billing_address = Address.objects.filter(user=request.user, address_type=Address.BILLING, is_default=True).order_by("-updated_at", "-id").first()
+    delivery_address = Address.objects.filter(user=request.user, address_type=Address.DELIVERY, is_default=True).order_by("-updated_at", "-id").first()
+    saved_address = billing_address if address_type == Address.BILLING else delivery_address
+    is_editing = address_type in {Address.BILLING, Address.DELIVERY} and (request.method == "POST" or request.GET.get("edit") == "1" or saved_address is None)
+    if request.method == "POST" and is_editing:
+        form = AddressForm(request.POST, instance=saved_address)
+        if form.is_valid():
+            agent_address = form.save(commit=False)
+            agent_address.user = request.user
+            agent_address.address_type = address_type or Address.DELIVERY
+            agent_address.is_default = True
+            agent_address.save()
+            Address.objects.filter(user=request.user, address_type=agent_address.address_type, is_default=True).exclude(pk=agent_address.pk).update(is_default=False)
+            messages.success(request, f"Your {agent_address.get_address_type_display().lower()} address has been saved.")
+            return redirect("agent_address") if address_type is None else redirect("agent_" + address_type + "_address")
+    elif is_editing:
+        form = AddressForm(instance=saved_address)
+    else:
+        form = None
+    return render(
+        request,
+        "agents/address.html",
+        {
+            "form": form,
+            "saved_address": saved_address,
+            "billing_address": billing_address,
+            "delivery_address": delivery_address,
+            "address_type": address_type,
+            "is_editing": is_editing,
+        },
+    )

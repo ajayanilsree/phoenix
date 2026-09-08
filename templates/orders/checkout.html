@@ -22,15 +22,17 @@
     <div class="checkout-summary-column">
       <aside class="summary-card">
       <h2>Order summary</h2>
-      {% for item in cart.items.all %}<p><span>{% if item.variant and item.variant.name %}{{ item.variant.name }}{% else %}{{ item.product.name }}{% endif %}{% if item.variant %} - {% if item.variant.size %}{{ item.variant.size }}{% elif item.variant.colour %}{{ item.variant.colour }}{% else %}{{ item.variant.name }}{% endif %} · {% if item.variant.unit_type %}{{ item.variant.get_unit_type_display }}{% else %}{{ item.product.get_unit_type_display }}{% endif %}{% endif %} x {{ item.quantity }}</span><strong>₹{{ item.line_total }}</strong></p>{% endfor %}
+      {% for line in summary.lines %}{% with item=line.item %}<p><span>{% if item.variant and item.variant.name %}{{ item.variant.name }}{% else %}{{ item.product.name }}{% endif %}{% if item.variant %} - {% if item.variant.size %}{{ item.variant.size }}{% elif item.variant.colour %}{{ item.variant.colour }}{% else %}{{ item.variant.name }}{% endif %} · {% if item.variant.unit_type %}{{ item.variant.get_unit_type_display }}{% else %}{{ item.product.get_unit_type_display }}{% endif %}{% endif %} x {{ item.quantity }}</span><strong>₹{{ line.line_total }}</strong></p>{% endwith %}{% endfor %}
       <hr>
       <p><span>Subtotal</span><strong>₹{{ summary.subtotal }}</strong></p>
       <div class="promo-box">
-        {% if summary.promo %}
+        {% if summary.is_agent %}
+          {% if summary.subpromo_code %}<div class="promo-applied"><div><span>{{ summary.subpromo_code }} applied</span><strong>Sub promo pricing applied</strong></div><button class="text-button" type="submit" name="action" value="remove_promo">Remove</button></div>{% else %}<div class="promo-form"><label for="subpromo-code">Have a Sub Promo Code?</label><div><input id="subpromo-code" name="subpromo_code" placeholder="Enter sub promo code"><button class="btn btn-secondary compact-btn" type="submit" name="action" value="apply_subpromo">Apply</button></div></div>{% endif %}
+        {% elif summary.promo %}
           <div class="promo-applied">
             <div>
               <span>{{ summary.promo_code }} applied</span>
-              <strong>{{ summary.discount_percentage|floatformat:2 }}% Agent Discount</strong>
+              <strong>Promo pricing applied</strong>
             </div>
             <button class="text-button" type="submit" name="action" value="remove_promo">Remove</button>
           </div>
@@ -44,10 +46,11 @@
           </div>
         {% endif %}
       </div>
-      {% if summary.promo %}
-        <p class="discount-line"><span>Agent Promo ({{ summary.discount_percentage|floatformat:2 }}%)</span><strong>-₹{{ summary.discount_amount }}</strong></p>
+      {% if summary.promo or summary.subpromo_code %}
+        <p class="discount-line"><span>{% if summary.is_agent %}Subpromo Savings{% else %}Promo Savings{% endif %}</span><strong>-₹{{ summary.discount_amount }}</strong></p>
         <p><span>Discounted Subtotal</span><strong>₹{{ summary.discounted_subtotal }}</strong></p>
       {% endif %}
+      {% if summary.is_agent %}<div class="promo-form"><label for="redeem-points">Redeemable Points: {{ summary.available_points|floatformat:2 }} pts (₹{{ summary.available_points|floatformat:2 }})</label><div><input id="redeem-points" name="redeem_points" type="number" min="0" max="{{ summary.available_points }}" step="0.01" value="{{ summary.wallet_points_redeemed|floatformat:2 }}" placeholder="Points to redeem"><button class="btn btn-secondary compact-btn" type="submit" name="action" value="apply_points">Apply</button></div></div>{% if summary.wallet_discount_amount %}<p class="discount-line"><span>Wallet points</span><strong>-₹{{ summary.wallet_discount_amount }}</strong></p>{% endif %}{% endif %}
       <p><span>Delivery</span><em>Requires rule</em></p>
       <p><span>Tax</span><em>Requires rule</em></p>
       <hr>

@@ -3,7 +3,7 @@ from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse
 
-from .models import Category, Product, ProductReview
+from .models import Category, Product, ProductReview, ProductVariant
 
 
 class ProductReviewTests(TestCase):
@@ -57,6 +57,12 @@ class ProductReviewTests(TestCase):
         self.assertContains(response, main.name)
         self.assertContains(response, child.name)
 
+    def test_public_pages_include_floating_whatsapp_contact(self):
+        response = self.client.get(reverse("home"))
+
+        self.assertContains(response, "https://wa.me/917306430531")
+        self.assertContains(response, "Contact Phoenix Interior Hub on WhatsApp")
+
     def test_category_seed_does_not_hide_custom_categories(self):
         custom = Category.objects.create(name="Lighting Solutions", slug="lighting-solutions", sort_order=20)
 
@@ -82,3 +88,26 @@ class ProductReviewTests(TestCase):
         self.assertNotContains(response, "-40%")
         discounted.refresh_from_db()
         self.assertEqual(discounted.discount_percent, 40)
+
+    def test_variant_product_choose_options_links_to_product_detail(self):
+        product = Product.objects.create(
+            name="Variant Panel",
+            slug="variant-panel",
+            sku="VARIANT-PANEL-1",
+            category=self.category,
+            price="500.00",
+            has_variants=True,
+        )
+        ProductVariant.objects.create(
+            product=product,
+            name="Large",
+            sku="VARIANT-PANEL-1-L",
+            selling_price="500.00",
+            stock=5,
+        )
+
+        response = self.client.get(reverse("shop"))
+
+        product_url = reverse("product_detail", kwargs={"slug": product.slug})
+        self.assertContains(response, f'href="{product_url}">Choose Options</a>')
+        self.assertNotContains(response, 'type="submit" disabled>Choose Options')

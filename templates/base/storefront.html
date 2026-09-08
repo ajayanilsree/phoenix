@@ -7,7 +7,7 @@
   <title>{% block title %}Phoenix Interior Hub{% endblock %}</title>
   <meta name="description" content="{% block meta_description %}Premium PVC, WPC, bamboo charcoal and interior material products from Phoenix Interior Hub.{% endblock %}">
   <link rel="preload" as="image" href="{% static 'img/phoenix-logo-brown.png' %}">
-  <link rel="stylesheet" href="{% static 'css/styles.css' %}?v=20260904-2">
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}?v=20260908-2">
   <script defer src="{% static 'js/site.js' %}?v=20260902-1"></script>
 </head>
 <body class="preloader-active">
@@ -29,6 +29,7 @@
   {% endif %}
   <main>{% block content %}{% endblock %}</main>
   {% include "partials/footer.html" %}
+  {% include "partials/whatsapp.html" %}
   {% include "partials/chatbot.html" %}
 </body>
 </html>
