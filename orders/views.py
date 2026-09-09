@@ -17,8 +17,9 @@ from accounts.models import AgentProfile, AgentWallet, AgentWalletTransaction, U
 from cart.models import Cart
 from inventory.models import InventoryRecord, StockMovement
 from .forms import AgentPromoForm, CheckoutAddressForm
-from .models import Address, Order, OrderItem
+from .models import Address, Order, OrderItem, PaymentRecord
 from .payment import get_razorpay_client
+from .rewards import sync_agent_reward
 
 PROMO_SESSION_KEY = "agent_promo_code"
 SUBPROMO_SESSION_KEY = "agent_subpromo_code"
@@ -253,14 +254,7 @@ def amount_in_paise(amount):
 
 
 def finalize_wallet_transactions(order):
-    if order.agent_id and order.agent_reward_points > 0:
-        wallet, _ = AgentWallet.objects.select_for_update().get_or_create(agent_id=order.agent_id)
-        reference = f"order:{order.id}:earn"
-        if not AgentWalletTransaction.objects.filter(reference=reference).exists():
-            points = money(order.agent_reward_points)
-            AgentWalletTransaction.objects.create(wallet=wallet, transaction_type=AgentWalletTransaction.EARN, points=points, order=order, reference=reference, description=f"Reward for order {order.order_number}")
-            wallet.balance = money(wallet.balance + points)
-            wallet.save(update_fields=["balance", "updated_at"])
+    sync_agent_reward(order)
     if order.wallet_points_redeemed > 0 and user_role(order.customer) == UserProfile.AGENT:
         wallet = AgentWallet.objects.select_for_update().get_or_create(agent_id=order.customer_id)[0]
         reference = f"order:{order.id}:redeem"
@@ -271,6 +265,16 @@ def finalize_wallet_transactions(order):
             AgentWalletTransaction.objects.create(wallet=wallet, transaction_type=AgentWalletTransaction.REDEEM, points=-points, order=order, reference=reference, description=f"Redeemed on order {order.order_number}")
             wallet.balance = money(wallet.balance - points)
             wallet.save(update_fields=["balance", "updated_at"])
+
+
+def mark_payment_failed(order):
+    """Keep an unverified Razorpay order out of the confirmed state."""
+    order.payment_status = "failed"
+    update_fields = ["payment_status", "updated_at"]
+    if order.payment_method == "razorpay" and order.status == Order.CONFIRMED:
+        order.status = Order.PENDING
+        update_fields.append("status")
+    order.save(update_fields=update_fields)
 
 
 @login_required
@@ -391,7 +395,7 @@ def checkout(request):
             return render(
                 request,
                 "orders/checkout.html",
-                {"form": form, "promo_form": promo_form, "cart": cart, "billing_address": billing_address, "delivery_address": delivery_address, "summary": summary, "razorpay_options": {"key": settings.RAZORPAY_KEY_ID, "amount": amount_in_paise(order.grand_total), "currency": "INR", "name": "Phoenix Interior Hub", "description": f"Order {order.order_number}", "order_id": order.razorpay_order_id, "callback_url": reverse("verify_razorpay_payment"), "prefill": {"name": request.user.get_full_name(), "email": request.user.email, "contact": form.cleaned_data.get("phone", "")}, "theme": {"color": "#0B3158"}}},
+                {"form": form, "promo_form": promo_form, "cart": cart, "billing_address": billing_address, "delivery_address": delivery_address, "summary": summary, "razorpay_options": {"key": settings.RAZORPAY_KEY_ID, "amount": amount_in_paise(order.grand_total), "currency": "INR", "name": "Phoenix Interior Hub", "description": f"Order {order.order_number}", "order_id": order.razorpay_order_id, "prefill": {"name": request.user.get_full_name(), "email": request.user.email, "contact": form.cleaned_data.get("phone", "")}, "theme": {"color": "#0B3158"}}},
             )
     else:
         initial = {}
@@ -416,31 +420,29 @@ def verify_razorpay_payment(request):
     returned_order_id = request.POST.get("razorpay_order_id", "").strip()
     signature = request.POST.get("razorpay_signature", "").strip()
     if not payment_id or returned_order_id != order.razorpay_order_id or not signature:
-        order.payment_status = "failed"
-        order.save(update_fields=["payment_status", "updated_at"])
+        mark_payment_failed(order)
         return JsonResponse({"success": False, "message": "Payment verification failed."}, status=400)
     try:
         client = get_razorpay_client()
         client.utility.verify_payment_signature({"razorpay_order_id": returned_order_id, "razorpay_payment_id": payment_id, "razorpay_signature": signature})
     except Exception:
-        order.payment_status = "failed"
-        order.save(update_fields=["payment_status", "updated_at"])
+        mark_payment_failed(order)
         return JsonResponse({"success": False, "message": "Payment verification failed."}, status=400)
 
     with transaction.atomic():
         order = Order.objects.select_for_update().get(pk=order.pk, customer=request.user)
         if order.payment_status == "paid":
+            if order.razorpay_payment_id and order.razorpay_payment_id != payment_id:
+                return JsonResponse({"success": False, "message": "This order has already been paid."}, status=409)
             return JsonResponse({"success": True, "redirect_url": reverse("order_success", args=[order.order_number])})
         error = stock_error(Cart.objects.filter(user=request.user).prefetch_related("items__product", "items__variant").first())
         if error:
-            order.payment_status = "failed"
-            order.save(update_fields=["payment_status", "updated_at"])
+            mark_payment_failed(order)
             return JsonResponse({"success": False, "message": error}, status=409)
         for item in order.items.select_related("product", "variant"):
             if item.variant_id:
                 if item.variant.stock < item.quantity:
-                    order.payment_status = "failed"
-                    order.save(update_fields=["payment_status", "updated_at"])
+                    mark_payment_failed(order)
                     return JsonResponse({"success": False, "message": f"Only {max(item.variant.stock, 0)} units of {item.product_name} are currently available."}, status=409)
                 item.variant.stock -= item.quantity
                 item.variant.save(update_fields=["stock", "updated_at"])
@@ -449,8 +451,7 @@ def verify_razorpay_payment(request):
             if inventory is None:
                 inventory = InventoryRecord.objects.select_for_update().filter(product_id=item.product_id).first()
             if inventory is None or inventory.current_stock < item.quantity:
-                order.payment_status = "failed"
-                order.save(update_fields=["payment_status", "updated_at"])
+                mark_payment_failed(order)
                 return JsonResponse({"success": False, "message": f"Only {max(inventory.current_stock, 0) if inventory else 0} units of {item.product_name} are currently available."}, status=409)
             inventory.current_stock -= item.quantity
             inventory.save(update_fields=["current_stock", "updated_at"])
@@ -460,6 +461,14 @@ def verify_razorpay_payment(request):
         order.razorpay_payment_id = payment_id
         order.razorpay_signature = signature
         order.save(update_fields=["payment_status", "status", "razorpay_payment_id", "razorpay_signature", "updated_at"])
+        payment = PaymentRecord.objects.filter(order=order, provider="razorpay").order_by("-id").first()
+        if payment is None:
+            payment = PaymentRecord(order=order, provider="razorpay")
+        payment.reference = payment_id
+        payment.status = "paid"
+        payment.amount = order.grand_total
+        payment.raw_response = {"razorpay_order_id": returned_order_id, "razorpay_payment_id": payment_id}
+        payment.save()
         finalize_wallet_transactions(order)
         Cart.objects.filter(user=request.user).first().items.all().delete()
     request.session.pop(PENDING_ORDER_SESSION_KEY, None)

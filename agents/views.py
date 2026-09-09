@@ -12,6 +12,7 @@ from accounts.forms import AgentLoginForm
 from catalog.models import Product
 from orders.forms import AddressForm
 from orders.models import Address, Order
+from orders.rewards import eligible_agent_orders, reconcile_agent_rewards
 
 
 def paginate(request, queryset, per_page=12):
@@ -42,6 +43,7 @@ def dashboard(request):
         return redirect("agent_login")
     if user_role(request.user) != "agent":
         raise PermissionDenied
+    reconcile_agent_rewards(request.user)
     orders = Order.objects.filter(Q(agent=request.user) | Q(customer=request.user)).select_related("customer")
     agent_profile = getattr(request.user, "agent_profile", None)
     wallet = AgentWallet.objects.filter(agent=request.user).first()
@@ -49,7 +51,7 @@ def dashboard(request):
     lookup_results = Order.objects.none()
     if query:
         lookup_results = orders.filter(Q(order_number__icontains=query) | Q(customer__email__icontains=query))
-    orders_using_code = orders.filter(agent_code_snapshot__gt="")
+    orders_using_code = eligible_agent_orders(request.user)
     return render(
         request,
         "agents/dashboard.html",

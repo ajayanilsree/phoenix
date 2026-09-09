@@ -236,6 +236,12 @@ class OrderStatusForm(forms.ModelForm):
         model = Order
         fields = ["status"]
 
+    def clean_status(self):
+        status = self.cleaned_data["status"]
+        if self.instance.payment_method == "razorpay" and self.instance.payment_status != "paid" and status != Order.PENDING:
+            raise ValidationError("A Razorpay order can only be confirmed after payment is verified.")
+        return status
+
 
 class UserManageForm(forms.Form):
     full_name = forms.CharField(max_length=140)
