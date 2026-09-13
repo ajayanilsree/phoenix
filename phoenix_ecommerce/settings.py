@@ -43,7 +43,9 @@ if not SECRET_KEY:
     else:
         raise RuntimeError("SECRET_KEY must be configured when DEBUG=False.")
 
-ALLOWED_HOSTS = ["127.0.0.1", "localhost", "testserver", "phoenixinteriorhub.com", "www.phoenixinteriorhub.com", "phoenix-interior-hub.onrender.com"]
+ALLOWED_HOSTS = ["phoenixinteriorhub.com", "www.phoenixinteriorhub.com", "phoenix-interior-hub.onrender.com"]
+if DEBUG:
+    ALLOWED_HOSTS += ["127.0.0.1", "localhost", "testserver"]
 render_hostname = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
 if render_hostname and render_hostname not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(render_hostname)
@@ -70,6 +72,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "core.middleware.SensitivePathBlockMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -171,6 +174,7 @@ LOGOUT_REDIRECT_URL = "home"
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = True
 X_FRAME_OPTIONS = "DENY"
+SECURE_CONTENT_TYPE_NOSNIFF = True
 CSRF_TRUSTED_ORIGINS = [
     "https://phoenixinteriorhub.com",
     "https://www.phoenixinteriorhub.com",

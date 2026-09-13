@@ -23,6 +23,7 @@ def cart_detail(request):
 
 
 @login_required
+@require_POST
 def add_to_cart(request, product_id):
     product = get_object_or_404(Product, id=product_id, is_active=True)
     option_type = request.POST.get("option_type", "base")
@@ -90,6 +91,7 @@ def update_cart_item(request, item_id):
 
 
 @login_required
+@require_POST
 def remove_cart_item(request, item_id):
     get_object_or_404(CartItem, id=item_id, cart__user=request.user).delete()
     messages.info(request, "Item removed from cart.")

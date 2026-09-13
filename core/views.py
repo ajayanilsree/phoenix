@@ -1,3 +1,4 @@
+from django.http import HttpResponse
 from django.shortcuts import render
 
 from catalog.models import Category, Product
@@ -40,3 +41,22 @@ def page_not_found(request, exception=None):
 
 def permission_denied(request, exception=None):
     return render(request, "core/403.html", status=403)
+
+
+def robots_txt(request):
+    return HttpResponse(
+        "User-agent: GPTBot\n"
+        "Disallow: /\n\n"
+        "User-agent: *\n"
+        "Disallow: /cart/\n"
+        "Disallow: /checkout/\n"
+        "Disallow: /auth/\n"
+        "Disallow: /account/\n"
+        "Disallow: /admin/\n"
+        "Disallow: /django-admin/\n"
+        "Disallow: /agent/\n"
+        "Disallow: /employee/\n"
+        "Disallow: /staff/\n"
+        "Disallow: /api/\n",
+        content_type="text/plain",
+    )

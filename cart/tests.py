@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
+from django.middleware.csrf import get_token
 from django.test import TestCase
 from django.urls import reverse
 
@@ -75,3 +76,27 @@ class CartQuantityUpdateTests(TestCase):
         response = self.client.post(self.url, {"quantity": "3"})
 
         self.assertEqual(response.json()["cart_subtotal"], "1797.00")
+
+    def test_add_to_cart_rejects_get_without_creating_cart(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("add_to_cart", kwargs={"product_id": self.product.id}))
+        self.assertEqual(response.status_code, 405)
+        self.assertEqual(CartItem.objects.get(cart__user=self.user, product=self.product).quantity, 1)
+
+    def test_add_to_cart_requires_csrf(self):
+        client = self.client_class(enforce_csrf_checks=True)
+        client.force_login(self.user)
+        response = client.post(reverse("add_to_cart", kwargs={"product_id": self.product.id}), {"quantity": 1})
+        self.assertEqual(response.status_code, 403)
+
+    def test_authenticated_csrf_post_adds_product(self):
+        client = self.client_class(enforce_csrf_checks=True)
+        client.force_login(self.user)
+        response = client.get(reverse("cart_detail"))
+        token = get_token(response.wsgi_request)
+        response = client.post(
+            reverse("add_to_cart", kwargs={"product_id": self.product.id}),
+            {"quantity": 1, "csrfmiddlewaretoken": token},
+        )
+        self.assertRedirects(response, reverse("cart_detail"))
+        self.assertEqual(CartItem.objects.get(cart__user=self.user, product=self.product).quantity, 2)
