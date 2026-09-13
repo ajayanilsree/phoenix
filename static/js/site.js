@@ -179,6 +179,14 @@ if (menuToggle && menu) {
   });
 }
 
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/service-worker.js").catch(() => {
+      // PWA support is optional and must never interrupt normal browsing.
+    });
+  }, { once: true });
+}
+
 document.querySelectorAll(".nav-dropdown-toggle").forEach((toggle) => {
   toggle.addEventListener("click", () => {
     toggle.closest(".nav-dropdown").classList.toggle("is-open");
