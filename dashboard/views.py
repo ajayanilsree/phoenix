@@ -1,13 +1,15 @@
 import json
+import logging
 
 from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
 from django.core.serializers.json import DjangoJSONEncoder
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Count, Q, Sum
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
@@ -27,6 +29,8 @@ from .forms import (
     ProductManageForm,
     ProductVariantFormSet,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def require_admin(request):
@@ -233,6 +237,37 @@ def save_product_images(product, files):
         product_image.save()
 
 
+def _product_form_errors(form, variant_formset):
+    errors = []
+
+    def add_errors(scope, field_name, label, field_errors):
+        for message in field_errors:
+            errors.append({
+                "scope": scope,
+                "field": field_name,
+                "label": label,
+                "message": str(message),
+            })
+
+    for field_name, field_errors in form.errors.items():
+        label = "Product"
+        field_key = None if field_name == "__all__" else field_name
+        if field_key:
+            label = form.fields[field_key].label
+        add_errors("Base Product", field_key, label, field_errors)
+
+    for message in variant_formset.non_form_errors():
+        add_errors("Product Variants", None, "Variants", [message])
+    for index, variant_form in enumerate(variant_formset.forms, start=1):
+        for field_name, field_errors in variant_form.errors.items():
+            field_key = None if field_name == "__all__" else f"variants-{index - 1}-{field_name}"
+            label = "Variant"
+            if field_name != "__all__":
+                label = variant_form.fields[field_name].label
+            add_errors(f"Variant {index}", field_key, label, field_errors)
+    return errors
+
+
 @never_cache
 def product_form(request, product_id=None, staff_portal=False):
     blocked = require_staff(request) if staff_portal else require_admin(request)
@@ -240,17 +275,30 @@ def product_form(request, product_id=None, staff_portal=False):
         return blocked
     product = get_object_or_404(Product, pk=product_id) if product_id else None
     form = ProductManageForm(request.POST or None, request.FILES or None, instance=product)
-    variant_formset = ProductVariantFormSet(request.POST or None, request.FILES or None, instance=product, prefix="variants")
+    variant_data = request.POST or None
+    if (
+        request.method == "POST"
+        and request.POST.get("variant_type", Product.VARIANT_NONE) == Product.VARIANT_NONE
+        and request.POST.get("variants-INITIAL_FORMS", "0") == "0"
+    ):
+        variant_data = request.POST.copy()
+        variant_data["variants-TOTAL_FORMS"] = "0"
+    variant_formset = ProductVariantFormSet(variant_data, request.FILES or None, instance=product, prefix="variants")
     variant_formset.variant_type = (request.POST.get("variant_type") if request.method == "POST" else (product.variant_type if product else "none")) or "none"
     variant_formset.base_value = ""
     if variant_formset.variant_type == Product.VARIANT_SIZE:
         variant_formset.base_value = (request.POST.get("size") if request.method == "POST" else getattr(product, "size", "")) or ""
     elif variant_formset.variant_type == Product.VARIANT_COLOR:
         variant_formset.base_value = (request.POST.get("colour") if request.method == "POST" else getattr(product, "colour", "")) or ""
-    if request.method == "POST" and form.is_valid():
-        variant_formset.variant_type = form.cleaned_data.get("variant_type", "none")
-        variant_formset.instance.has_variants = variant_formset.variant_type != "none"
-    if request.method == "POST" and form.is_valid() and variant_formset.is_valid():
+    form_valid = False
+    variant_formset_valid = False
+    if request.method == "POST":
+        form_valid = form.is_valid()
+        if form_valid:
+            variant_formset.variant_type = form.cleaned_data.get("variant_type", "none")
+            variant_formset.instance.has_variants = variant_formset.variant_type != "none"
+        variant_formset_valid = variant_formset.is_valid()
+    if request.method == "POST" and form_valid and variant_formset_valid:
         try:
             with transaction.atomic():
                 product = form.save()
@@ -291,10 +339,22 @@ def product_form(request, product_id=None, staff_portal=False):
                         product_image = ProductImage(product=product, variant=variant, image=image, alt_text=f"{product.name} - {variant.name}", sort_order=image_index, is_primary=existing_count == 0 and image_index == 0)
                         product_image.full_clean()
                         product_image.save()
-            messages.success(request, "Product updated successfully." if product_id else "Product created successfully.")
+            success_message = "Product updated successfully." if product_id else "Product added successfully."
+            messages.success(request, success_message)
+            if request.headers.get("x-requested-with") == "XMLHttpRequest":
+                return JsonResponse({"success": True, "message": success_message, "redirect": reverse("employee_products" if staff_portal else "admin_products")})
             return redirect("employee_products" if staff_portal else "admin_products")
         except (ValueError, ValidationError) as error:
             form.add_error(None, str(error))
+        except IntegrityError:
+            logger.exception("Product save integrity failure staff_portal=%s product_id=%s", staff_portal, product_id)
+            form.add_error(None, "This product could not be saved. Check that the SKU and variant SKUs are unique.")
+        except Exception:
+            logger.exception("Unexpected product save failure staff_portal=%s product_id=%s", staff_portal, product_id)
+            form.add_error(None, "We could not save this product. Please check the form and try again.")
+    error_summary = _product_form_errors(form, variant_formset) if request.method == "POST" else []
+    if request.method == "POST" and request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({"success": False, "errors": error_summary}, status=400)
     subcategory_options = {}
     subcategories = Category.objects.filter(is_active=True, parent__isnull=False).select_related("parent").order_by(
         "parent__sort_order", "sort_order", "name"
@@ -317,6 +377,7 @@ def product_form(request, product_id=None, staff_portal=False):
                 "admin_product_edit" if product else "admin_product_add",
                 args=[product.id] if product else [],
             ),
+            "error_summary": error_summary,
         },
     )
 

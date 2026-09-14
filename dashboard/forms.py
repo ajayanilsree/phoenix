@@ -29,8 +29,8 @@ def unique_slug_for(model, value, instance=None):
 
 
 class ProductManageForm(forms.ModelForm):
-    stock = forms.IntegerField(min_value=0, required=False, initial=0)
-    low_stock_threshold = forms.IntegerField(min_value=0, required=False, initial=5)
+    stock = forms.IntegerField(min_value=0, required=True, initial=0)
+    low_stock_threshold = forms.IntegerField(min_value=0, required=True, initial=5)
     variant_count = forms.IntegerField(min_value=1, max_value=20, required=False)
 
     class Meta:
@@ -57,6 +57,7 @@ class ProductManageForm(forms.ModelForm):
             "variant_type",
         ]
         labels = {
+            "hsn_code": "HSN Code",
             "full_description": "Product Description",
             "compare_at_price": "Original Price",
             "price": "Discount Price / Selling Price",
@@ -72,7 +73,28 @@ class ProductManageForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["compare_at_price"].required = True
+        # Keep the form contract explicit: only the product attributes listed
+        # in the request are optional. Model defaults/nullability are not the
+        # same thing as allowing an incomplete management form.
+        required_fields = {
+            "name",
+            "sku",
+            "hsn_code",
+            "category",
+            "subcategory",
+            "full_description",
+            "compare_at_price",
+            "price",
+            "promo_price",
+            "subpromo_price",
+            "agent_redeem_percentage",
+            "unit_type",
+            "variant_type",
+        }
+        for field_name in required_fields:
+            self.fields[field_name].required = True
+        for field_name in ("size", "thickness", "colour", "finish", "features", "applications"):
+            self.fields[field_name].required = False
         self.fields["category"].queryset = Category.objects.filter(is_active=True, parent__isnull=True).order_by("sort_order", "name")
         self.fields["subcategory"].queryset = Category.objects.filter(is_active=True, parent__isnull=False).select_related("parent").order_by("parent__sort_order", "sort_order", "name")
         self.fields["subcategory"].required = True
@@ -108,10 +130,6 @@ class ProductManageForm(forms.ModelForm):
             self.add_error("subcategory", "Select a subcategory that belongs to the selected category.")
         if cleaned.get("variant_type") != Product.VARIANT_NONE and not cleaned.get("variant_count"):
             self.add_error("variant_count", "Enter the number of variants.")
-        if cleaned.get("variant_type") == Product.VARIANT_SIZE and not (cleaned.get("size") or "").strip():
-            self.add_error("size", "Base Size is required for Size variants.")
-        if cleaned.get("variant_type") == Product.VARIANT_COLOR and not (cleaned.get("colour") or "").strip():
-            self.add_error("colour", "Base Color is required for Color variants.")
         return cleaned
 
     def save(self, commit=True):
@@ -129,9 +147,30 @@ class ProductManageForm(forms.ModelForm):
 class ProductVariantForm(forms.ModelForm):
     class Meta:
         model = ProductVariant
-        fields = ["name", "description", "sku", "hsn_code", "size", "thickness", "colour", "unit_type", "original_price", "selling_price", "promo_price", "subpromo_price", "agent_redeem_percentage", "stock", "low_stock_threshold"]
-        labels = {"name": "Variant Name", "description": "Variant Product Description", "colour": "Color", "unit_type": "Unit Type", "original_price": "Original Price", "selling_price": "Discount Price / Selling Price"}
+        fields = ["name", "description", "sku", "hsn_code", "size", "thickness", "colour", "finish", "unit_type", "original_price", "selling_price", "promo_price", "subpromo_price", "agent_redeem_percentage", "stock", "low_stock_threshold"]
+        labels = {"name": "Variant Name", "description": "Variant Product Description", "hsn_code": "HSN Code", "colour": "Color", "unit_type": "Unit Type", "original_price": "Original Price", "selling_price": "Discount Price / Selling Price"}
         widgets = {"description": forms.Textarea(attrs={"rows": 3, "placeholder": "Describe this variant..."})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        required_fields = {
+            "name",
+            "description",
+            "sku",
+            "hsn_code",
+            "unit_type",
+            "original_price",
+            "selling_price",
+            "promo_price",
+            "subpromo_price",
+            "agent_redeem_percentage",
+            "stock",
+            "low_stock_threshold",
+        }
+        for field_name in required_fields:
+            self.fields[field_name].required = True
+        for field_name in ("size", "thickness", "colour", "finish"):
+            self.fields[field_name].required = False
 
     def clean(self):
         cleaned = super().clean()
@@ -165,8 +204,6 @@ class BaseProductVariantFormSet(forms.BaseInlineFormSet):
             active_count += 1
             attribute = "colour" if variant_type == Product.VARIANT_COLOR else "size"
             value = (form.cleaned_data.get(attribute) or "").strip()
-            if variant_type in {Product.VARIANT_SIZE, Product.VARIANT_COLOR} and not value:
-                form.add_error(attribute, f"{attribute.title()} is required for this product.")
             key = value.casefold()
             if base_value and key == base_value:
                 form.add_error(attribute, f"A variant with the same {attribute} as the base product already exists.")
