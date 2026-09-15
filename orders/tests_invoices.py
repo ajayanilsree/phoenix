@@ -54,6 +54,17 @@ class InvoiceGenerationTests(TestCase):
         invoice = generate_invoice(self.order, self.staff, "Phoenix Warehouse")
         self.assertEqual(invoice.invoice_number, "PHXINTB2C000001")
 
+    def test_admin_can_submit_packed_status_and_generate_invoice(self):
+        self.client.login(username="invoice-admin", password="test-password")
+        response = self.client.post(
+            reverse("admin_order_detail", args=[self.order.order_number]),
+            {"status": Order.PACKED, "invoice_from_address": "Phoenix Warehouse"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Invoice.objects.filter(order=self.order).exists())
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, Order.PACKED)
+
     def test_unpaid_order_cannot_generate_invoice(self):
         self.order.payment_status = "pending"
         self.order.save(update_fields=["payment_status"])
