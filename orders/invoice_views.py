@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404, render
 from django.views.decorators.cache import never_cache
 
 from accounts.decorators import user_role
+from .invoices import InvoiceGenerationError, store_invoice_pdf
 from .models import Invoice
 
 
@@ -64,6 +65,26 @@ def invoice_pdf(request, invoice_id, role):
         from django.core.exceptions import PermissionDenied
         raise PermissionDenied
     invoice = get_object_or_404(_invoices_for(request.user), pk=invoice_id)
+
+    # Invoice PDFs are media files, not generated into Render's ephemeral
+    # filesystem. Regenerate only for legacy invoices with no stored file.
+    if not invoice.pdf_file:
+        try:
+            store_invoice_pdf(invoice)
+        except InvoiceGenerationError as error:
+            return HttpResponse(str(error), status=503)
+        invoice.refresh_from_db()
+    try:
+        file_handle = invoice.pdf_file.open("rb")
+    except Exception:
+        from .invoices import logger
+        logger.exception("Stored invoice PDF could not be opened for invoice %s", invoice.invoice_number)
+        return HttpResponse("Invoice PDF is temporarily unavailable.", status=503)
+    response = FileResponse(file_handle, content_type="application/pdf", as_attachment=True, filename=f"{invoice.invoice_number}.pdf")
+    return _private(response)
+
+    # Kept below as a local fallback for development environments that have
+    # legacy invoice rows without a FileField-backed PDF.
     try:
         from reportlab.lib import colors
         from reportlab.lib.pagesizes import A4

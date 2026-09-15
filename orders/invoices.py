@@ -2,6 +2,7 @@ from decimal import Decimal, ROUND_HALF_UP
 import logging
 
 from django.conf import settings
+from django.core.files.base import ContentFile
 from django.db import transaction
 from django.utils import timezone
 
@@ -84,7 +85,26 @@ def amount_in_words(value):
 
 
 def next_sequence(name):
-    counter, _ = SequenceCounter.objects.select_for_update().get_or_create(name=name, defaults={"next_value": 1})
+    # Recover counters from already-issued documents. This matters when a
+    # production database was migrated after invoices already existed, or a
+    # counter row was removed manually.
+    defaults = {"next_value": 1}
+    prefix = {"invoice_b2c": "PHXINTB2C", "invoice_b2b": "PHXINTB2B"}.get(name)
+    if prefix:
+        latest = Invoice.objects.filter(invoice_number__startswith=prefix).order_by("-invoice_number").values_list("invoice_number", flat=True).first()
+        if latest:
+            try:
+                defaults["next_value"] = int(latest[len(prefix):]) + 1
+            except (TypeError, ValueError):
+                logger.warning("Ignoring malformed invoice number while recovering %s: %s", name, latest)
+    counter, created = SequenceCounter.objects.select_for_update().get_or_create(name=name, defaults=defaults)
+    if not created and prefix:
+        latest = Invoice.objects.filter(invoice_number__startswith=prefix).order_by("-invoice_number").values_list("invoice_number", flat=True).first()
+        if latest:
+            try:
+                counter.next_value = max(counter.next_value, int(latest[len(prefix):]) + 1)
+            except (TypeError, ValueError):
+                logger.warning("Ignoring malformed invoice number while checking %s: %s", name, latest)
     number = counter.next_value
     counter.next_value = number + 1
     counter.save(update_fields=["next_value"])
@@ -116,12 +136,36 @@ def tax_for_line(gross, rate, interstate=False):
     return taxable, cgst, money(total_gst - cgst), Decimal("0.00")
 
 
+def store_invoice_pdf(invoice):
+    """Render and persist an invoice PDF through Django's configured media storage."""
+    from .pdf import render_invoice_pdf
+
+    try:
+        pdf_bytes = render_invoice_pdf(invoice)
+    except Exception as error:
+        logger.exception("Invoice PDF generation failed for order %s", invoice.order.order_number)
+        raise InvoiceGenerationError("Invoice PDF could not be generated. Order status was not changed.") from error
+    try:
+        invoice.pdf_file.save(f"{invoice.invoice_number}.pdf", ContentFile(pdf_bytes), save=False)
+        invoice.save(update_fields=["pdf_file"])
+    except Exception as error:
+        logger.exception("Invoice PDF storage failed for order %s", invoice.order.order_number)
+        if invoice.pdf_file:
+            try:
+                invoice.pdf_file.delete(save=False)
+            except Exception:
+                logger.exception("Invoice PDF cleanup failed for order %s", invoice.order.order_number)
+        raise InvoiceGenerationError("Invoice PDF could not be stored. Order status was not changed.") from error
+
+
 def generate_invoice(order, generated_by, from_address):
     from_address = (from_address or "").strip()
     with transaction.atomic():
         order = Order.objects.select_for_update().select_related("customer", "billing_address", "shipping_address").get(pk=order.pk)
         existing = Invoice.objects.filter(order=order).first()
         if existing:
+            if not existing.pdf_file:
+                store_invoice_pdf(existing)
             order.status = Order.PACKED
             order.save(update_fields=["status", "updated_at"])
             return existing
@@ -208,6 +252,7 @@ def generate_invoice(order, generated_by, from_address):
         invoice.round_off = money(invoice.grand_total - (invoice.taxable_total + invoice.cgst_total + invoice.sgst_total - invoice.wallet_discount))
         invoice.amount_in_words = amount_in_words(invoice.grand_total)
         invoice.save(update_fields=["taxable_total", "cgst_total", "sgst_total", "igst_total", "wallet_discount", "round_off", "amount_in_words"])
+        store_invoice_pdf(invoice)
         order.invoice_from_address = from_address
         order.status = Order.PACKED
         order.save(update_fields=["invoice_from_address", "status", "updated_at"])

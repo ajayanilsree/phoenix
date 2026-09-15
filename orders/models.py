@@ -3,6 +3,8 @@ from decimal import Decimal
 from django.conf import settings
 from django.db import models
 
+from .storage import InvoicePDFStorage
+
 
 class Address(models.Model):
     BILLING = "billing"
@@ -193,6 +195,7 @@ class Invoice(models.Model):
     grand_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     amount_in_words = models.CharField(max_length=240, blank=True)
     generated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True, related_name="generated_invoices")
+    pdf_file = models.FileField(storage=InvoicePDFStorage(), upload_to="invoices/%Y/%m/", blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

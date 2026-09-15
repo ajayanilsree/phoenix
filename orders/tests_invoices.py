@@ -1,17 +1,25 @@
 from decimal import Decimal
+from tempfile import TemporaryDirectory
 
 from django.contrib.auth import get_user_model
+from django.core.files.storage import FileSystemStorage
 from django.test import TestCase
 from django.urls import reverse
 
 from accounts.models import UserProfile
 from catalog.models import Category, Product
-from .invoices import InvoiceGenerationError, generate_invoice, invoice_company_details
+from .invoices import InvoiceGenerationError, generate_invoice, invoice_company_details, next_sequence
 from .models import Address, Invoice, Order, OrderItem
 
 
 class InvoiceGenerationTests(TestCase):
     def setUp(self):
+        self.pdf_directory = TemporaryDirectory()
+        self.addCleanup(self.pdf_directory.cleanup)
+        self.invoice_pdf_field = Invoice._meta.get_field("pdf_file")
+        self.original_pdf_storage = self.invoice_pdf_field.storage
+        self.invoice_pdf_field.storage = FileSystemStorage(location=self.pdf_directory.name)
+        self.addCleanup(self._restore_invoice_storage)
         User = get_user_model()
         self.customer = User.objects.create_user(username="invoice-customer", password="test-password", first_name="Asha")
         self.customer.profile.role = UserProfile.CUSTOMER
@@ -26,6 +34,9 @@ class InvoiceGenerationTests(TestCase):
         self.address = Address.objects.create(**address_data)
         self.order = Order.objects.create(order_number="PHXS000001", customer=self.customer, shipping_address=self.address, billing_address=self.address, payment_status="paid", status=Order.CONFIRMED, grand_total=Decimal("118.00"))
         OrderItem.objects.create(order=self.order, product=product, product_name=product.name, sku=product.sku, hsn_code="4411", gst_rate_snapshot=18, unit_type="piece", unit_price=Decimal("118.00"), quantity=1, line_total=Decimal("118.00"))
+
+    def _restore_invoice_storage(self):
+        self.invoice_pdf_field.storage = self.original_pdf_storage
 
     def test_invoice_is_b2c_and_idempotent(self):
         invoice = generate_invoice(self.order, self.staff, "Phoenix Warehouse\nKochi")
@@ -53,6 +64,21 @@ class InvoiceGenerationTests(TestCase):
         SequenceCounter.objects.filter(name="invoice_b2c").delete()
         invoice = generate_invoice(self.order, self.staff, "Phoenix Warehouse")
         self.assertEqual(invoice.invoice_number, "PHXINTB2C000001")
+
+    def test_invoice_sequence_recovers_from_existing_invoice(self):
+        Invoice.objects.create(
+            order=self.order,
+            invoice_number="PHXINTB2C000007",
+            invoice_type=Invoice.B2C,
+            invoice_date=self.order.created_at,
+            company_name="Phoenix Interior Hub",
+            from_address="Phoenix Warehouse",
+            grand_total=self.order.grand_total,
+        )
+        from .models import SequenceCounter
+
+        SequenceCounter.objects.filter(name="invoice_b2c").delete()
+        self.assertEqual(next_sequence("invoice_b2c"), 8)
 
     def test_legacy_item_snapshots_fall_back_to_product_data(self):
         item = self.order.items.first()
