@@ -165,7 +165,9 @@ def generate_invoice(order, generated_by, from_address):
     from_address = (from_address or "").strip()
     with transaction.atomic():
         logger.info("INVOICE DEBUG 01 payment validation | order=%s", order.order_number)
-        order = Order.objects.select_for_update().select_related("customer", "billing_address", "shipping_address").get(pk=order.pk)
+        # PostgreSQL cannot apply FOR UPDATE to nullable outer-joined address
+        # relations. Lock only the order row; related snapshots remain read-only.
+        order = Order.objects.select_for_update(of=("self",)).select_related("customer", "billing_address", "shipping_address").get(pk=order.pk)
         existing = Invoice.objects.filter(order=order).first()
         if existing:
             logger.info("INVOICE DEBUG existing invoice | order=%s invoice=%s pdf=%s", order.order_number, existing.invoice_number, bool(existing.pdf_file.name))
