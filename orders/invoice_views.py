@@ -82,7 +82,7 @@ def invoice_pdf(request, invoice_id, role):
             file_handle = storage.open(invoice.pdf_file.name, "rb")
     except Exception:
         from .invoices import logger
-        logger.exception("Stored invoice PDF could not be opened for invoice %s", invoice.invoice_number)
+        logger.exception("Invoice PDF download failed | invoice=%s file=%s", invoice.invoice_number, invoice.pdf_file.name)
         return HttpResponse("Invoice PDF is temporarily unavailable.", status=503)
     response = FileResponse(file_handle, content_type="application/pdf", as_attachment=True, filename=f"{invoice.invoice_number}.pdf")
     return _private(response)
