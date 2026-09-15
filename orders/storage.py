@@ -9,9 +9,9 @@ class InvoicePDFStorage(Storage):
 
     def __init__(self):
         if getattr(settings, "CLOUDINARY_CONFIGURED", False):
-            from cloudinary_storage.storage import MediaCloudinaryStorage
+            from cloudinary_storage.storage import RawMediaCloudinaryStorage
 
-            self.backend = MediaCloudinaryStorage(resource_type="raw")
+            self.backend = RawMediaCloudinaryStorage()
         else:
             self.backend = FileSystemStorage()
 
