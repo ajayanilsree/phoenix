@@ -48,14 +48,14 @@ class InvoicePDFStorage(Storage):
             return self.backend.open(name, "rb")
 
         import requests
-        from cloudinary.utils import private_download_url
+        from cloudinary.utils import cloudinary_url
 
         public_id = self.backend._prepend_prefix(name)
         public_id, separator, extension = public_id.rpartition(".")
         if not separator:
             public_id = name
             extension = "pdf"
-        url = private_download_url(public_id, extension, resource_type="raw", type="upload", attachment=True)
+        url, _ = cloudinary_url(public_id, resource_type="raw", type="upload", format=extension, sign_url=True, secure=True)
         response = requests.get(url, timeout=20)
         response.raise_for_status()
         return BytesIO(response.content)
