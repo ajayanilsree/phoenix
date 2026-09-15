@@ -82,7 +82,7 @@ def amount_in_words(value):
 
 
 def next_sequence(name):
-    counter = SequenceCounter.objects.select_for_update().get(name=name)
+    counter, _ = SequenceCounter.objects.select_for_update().get_or_create(name=name, defaults={"next_value": 1})
     number = counter.next_value
     counter.next_value = number + 1
     counter.save(update_fields=["next_value"])

@@ -1,3 +1,5 @@
+import logging
+
 from django.contrib import messages
 from django.contrib.auth import login
 from django.core.exceptions import PermissionDenied
@@ -17,6 +19,9 @@ from dashboard.views import product_form as shared_product_form
 from dashboard.views import product_image_delete as shared_product_image_delete
 from dashboard.views import product_toggle as shared_product_toggle
 from orders.invoices import InvoiceGenerationError, generate_invoice
+
+
+logger = logging.getLogger(__name__)
 
 
 def paginate(request, queryset, per_page=12):
@@ -80,6 +85,9 @@ def update_order_status(request, order_number):
                     invoice = generate_invoice(order, request.user, form.cleaned_data.get("invoice_from_address", ""))
                 except InvoiceGenerationError as error:
                     messages.error(request, str(error))
+                except Exception:
+                    logger.exception("Invoice generation failed for order %s", order.order_number)
+                    messages.error(request, "The invoice could not be generated. Please try again or contact an administrator.")
                 else:
                     messages.success(request, f"Order marked as Packed and invoice generated successfully. Invoice No: {invoice.invoice_number}")
             else:
@@ -120,6 +128,9 @@ def order_detail(request, order_number):
                 invoice = generate_invoice(order, request.user, form.cleaned_data.get("invoice_from_address", ""))
             except InvoiceGenerationError as error:
                 form.add_error("invoice_from_address", str(error))
+            except Exception:
+                logger.exception("Invoice generation failed for order %s", order.order_number)
+                form.add_error(None, "The invoice could not be generated. Please try again or contact an administrator.")
             else:
                 messages.success(request, f"Order marked as Packed and invoice generated successfully. Invoice No: {invoice.invoice_number}")
                 return redirect("employee_order_detail", order_number=order.order_number)

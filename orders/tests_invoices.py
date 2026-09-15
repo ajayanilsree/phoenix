@@ -47,6 +47,13 @@ class InvoiceGenerationTests(TestCase):
         self.assertEqual(invoice.invoice_number, "PHXINTB2B000001")
         self.assertEqual(invoice.invoice_type, Invoice.B2B)
 
+    def test_missing_sequence_counter_is_recreated(self):
+        from .models import SequenceCounter
+
+        SequenceCounter.objects.filter(name="invoice_b2c").delete()
+        invoice = generate_invoice(self.order, self.staff, "Phoenix Warehouse")
+        self.assertEqual(invoice.invoice_number, "PHXINTB2C000001")
+
     def test_unpaid_order_cannot_generate_invoice(self):
         self.order.payment_status = "pending"
         self.order.save(update_fields=["payment_status"])
