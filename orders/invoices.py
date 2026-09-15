@@ -140,11 +140,14 @@ def store_invoice_pdf(invoice):
     """Render and persist an invoice PDF through Django's configured media storage."""
     from .pdf import render_invoice_pdf
 
+    logger.info("INVOICE DEBUG 06 render PDF | order=%s", invoice.order.order_number)
     try:
         pdf_bytes = render_invoice_pdf(invoice)
     except Exception as error:
         logger.exception("Invoice PDF generation failed for order %s", invoice.order.order_number)
         raise InvoiceGenerationError("Invoice PDF could not be generated. Order status was not changed.") from error
+    logger.info("INVOICE DEBUG PDF BYTES LENGTH: %s | order=%s", len(pdf_bytes), invoice.order.order_number)
+    logger.info("INVOICE DEBUG 07 save PDF | order=%s", invoice.order.order_number)
     try:
         invoice.pdf_file.save(f"{invoice.invoice_number}.pdf", ContentFile(pdf_bytes), save=False)
         invoice.save(update_fields=["pdf_file"])
@@ -161,11 +164,14 @@ def store_invoice_pdf(invoice):
 def generate_invoice(order, generated_by, from_address):
     from_address = (from_address or "").strip()
     with transaction.atomic():
+        logger.info("INVOICE DEBUG 01 payment validation | order=%s", order.order_number)
         order = Order.objects.select_for_update().select_related("customer", "billing_address", "shipping_address").get(pk=order.pk)
         existing = Invoice.objects.filter(order=order).first()
         if existing:
+            logger.info("INVOICE DEBUG existing invoice | order=%s invoice=%s pdf=%s", order.order_number, existing.invoice_number, bool(existing.pdf_file.name))
             if not existing.pdf_file:
                 store_invoice_pdf(existing)
+            logger.info("INVOICE DEBUG 09 set packed | order=%s", order.order_number)
             order.status = Order.PACKED
             order.save(update_fields=["status", "updated_at"])
             return existing
@@ -178,6 +184,7 @@ def generate_invoice(order, generated_by, from_address):
         items = list(order.items.select_related("product", "variant").all())
         if not items:
             raise InvoiceGenerationError("Invoice cannot be generated because the order has no products.")
+        logger.info("INVOICE DEBUG 02 invoice sequence | order=%s", order.order_number)
         details = invoice_company_details()
         billing = order.billing_address
         shipping = order.shipping_address or order.billing_address
@@ -208,7 +215,9 @@ def generate_invoice(order, generated_by, from_address):
             grand_total=money(order.grand_total),
             generated_by=generated_by,
         )
+        logger.info("INVOICE DEBUG 03 invoice object | order=%s invoice=%s", order.order_number, invoice.invoice_number)
         taxable_total = cgst_total = sgst_total = igst_total = Decimal("0.00")
+        logger.info("INVOICE DEBUG 04 invoice items | order=%s count=%s", order.order_number, len(items))
         for line_number, item in enumerate(items, start=1):
             source = item.variant or item.product
             source_rate = getattr(source, "gst_rate", 0)
@@ -225,6 +234,7 @@ def generate_invoice(order, generated_by, from_address):
             if not item.quantity or item.quantity < 1:
                 raise InvoiceGenerationError(f"Invoice cannot be generated because quantity is invalid for {description}.")
             taxable, cgst, sgst, igst = tax_for_line(item.line_total, rate)
+            logger.info("INVOICE DEBUG 05 tax calculation | order=%s line=%s", order.order_number, line_number)
             taxable_total += taxable
             cgst_total += cgst
             sgst_total += sgst
@@ -251,8 +261,10 @@ def generate_invoice(order, generated_by, from_address):
         invoice.wallet_discount = money(order.wallet_discount_amount)
         invoice.round_off = money(invoice.grand_total - (invoice.taxable_total + invoice.cgst_total + invoice.sgst_total - invoice.wallet_discount))
         invoice.amount_in_words = amount_in_words(invoice.grand_total)
+        logger.info("INVOICE DEBUG 08 save invoice | order=%s invoice=%s", order.order_number, invoice.invoice_number)
         invoice.save(update_fields=["taxable_total", "cgst_total", "sgst_total", "igst_total", "wallet_discount", "round_off", "amount_in_words"])
         store_invoice_pdf(invoice)
+        logger.info("INVOICE DEBUG 09 set packed | order=%s", order.order_number)
         order.invoice_from_address = from_address
         order.status = Order.PACKED
         order.save(update_fields=["invoice_from_address", "status", "updated_at"])

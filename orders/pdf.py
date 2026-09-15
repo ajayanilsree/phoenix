@@ -1,7 +1,10 @@
 from io import BytesIO
+import logging
 from pathlib import Path
 
 from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 
 def render_invoice_pdf(invoice):
@@ -38,6 +41,9 @@ def render_invoice_pdf(invoice):
     styles["Heading2"].textColor = colors.HexColor("#071b33")
     story = []
     logo = Path(settings.BASE_DIR) / "static" / "img" / "phoenix-logo-brown.png"
+    signature_path = Path(settings.BASE_DIR) / "static" / "img" / "invoice-signature.png"
+    logger.info("INVOICE DEBUG logo path=%s exists=%s", logo, logo.exists())
+    logger.info("INVOICE DEBUG signature path=%s exists=%s", signature_path, signature_path.exists())
     header = []
     if logo.exists():
         header.append(Image(str(logo), width=32 * mm, height=16 * mm))
@@ -59,7 +65,6 @@ def render_invoice_pdf(invoice):
     story += [item_table, Spacer(1, 5 * mm)]
     totals = Table([["Taxable Total", f"₹{invoice.taxable_total}"], ["CGST", f"₹{invoice.cgst_total}"], ["SGST", f"₹{invoice.sgst_total}"], ["Grand Total", f"₹{invoice.grand_total}"]], colWidths=[145 * mm, 44 * mm])
     totals.setStyle(TableStyle([("BOX", (0, 0), (-1, -1), 0.8, colors.HexColor("#071b33")), ("INNERGRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#c7b8a5")), ("FONTNAME", (0, 0), (-1, -1), font_name), ("ALIGN", (1, 0), (-1, -1), "RIGHT"), ("FONTNAME", (0, -1), (-1, -1), bold_font_name), ("BACKGROUND", (0, -1), (-1, -1), colors.HexColor("#d7b06a")), ("PADDING", (0, 0), (-1, -1), 6)]))
-    signature_path = Path(settings.BASE_DIR) / "static" / "img" / "invoice-signature.png"
     signature_image = Image(str(signature_path), width=42 * mm, height=18 * mm) if signature_path.exists() else Spacer(42 * mm, 18 * mm)
     signature_block = Table([[Paragraph("<b>For PHOENIX INTERIOR HUB</b>", styles["Normal"])], [signature_image], [Paragraph("<b>AUTHORISED SIGNATORY</b>", styles["Normal"])]], colWidths=[189 * mm])
     signature_block.setStyle(TableStyle([("BOX", (0, 0), (-1, -1), 0.8, colors.HexColor("#071b33")), ("ALIGN", (0, 0), (-1, -1), "LEFT"), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("LEFTPADDING", (0, 0), (-1, -1), 8), ("RIGHTPADDING", (0, 0), (-1, -1), 8), ("TOPPADDING", (0, 0), (-1, -1), 5), ("BOTTOMPADDING", (0, 0), (-1, -1), 5)]))

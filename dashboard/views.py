@@ -170,7 +170,7 @@ def order_detail(request, order_number):
             except InvoiceGenerationError as error:
                 form.add_error("invoice_from_address", str(error))
             except Exception:
-                logger.exception("Invoice generation failed for order %s", order.order_number)
+                logger.exception("INVOICE GENERATION FAILED | order=%s", order.order_number)
                 form.add_error(None, "The invoice could not be generated. Please try again or contact an administrator.")
             else:
                 messages.success(request, f"Order marked as Packed and invoice generated successfully. Invoice No: {invoice.invoice_number}")
