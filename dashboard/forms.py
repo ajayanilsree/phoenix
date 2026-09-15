@@ -9,7 +9,7 @@ from accounts.models import AgentProfile, StaffProfile, UserProfile
 from catalog.models import Category, Product, ProductVariant
 from django.forms import inlineformset_factory
 from inventory.models import InventoryRecord
-from orders.models import Order
+from orders.models import Invoice, Order
 
 
 def unique_slug_for(model, value, instance=None):
@@ -283,6 +283,15 @@ class OrderStatusForm(forms.ModelForm):
         if self.instance.payment_method == "razorpay" and self.instance.payment_status != "paid" and status not in {Order.PENDING, Order.PACKED}:
             raise ValidationError("A Razorpay order can only be confirmed after payment is verified.")
         return status
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if cleaned_data.get("status") == Order.PACKED:
+            from_address = (cleaned_data.get("invoice_from_address") or "").strip()
+            existing = Invoice.objects.filter(order=self.instance).first() if self.instance.pk else None
+            if not from_address and not (self.instance.invoice_from_address or "").strip() and not (existing and existing.pdf_file.name):
+                self.add_error("invoice_from_address", "Enter the dispatch/from address before marking this order as Packed.")
+        return cleaned_data
 
 
 class UserManageForm(forms.Form):
