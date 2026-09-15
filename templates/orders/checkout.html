@@ -17,7 +17,7 @@
         {% endif %}
         {% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}
       {% endfor %}
-      {% if billing_address %}<div class="checkout-billing-summary"><h3>Billing Address</h3><div class="address-display"><strong>{{ billing_address.full_name }}</strong><span>{{ billing_address.line1 }}</span><span>{{ billing_address.city }}, {{ billing_address.state }} - {{ billing_address.postal_code }}</span></div><a class="text-link" href="{% url 'customer_billing_address' %}">Edit Billing Address</a></div>{% else %}<p class="decision-note">No billing address is saved yet. You can add one from your account before placing an order.</p><a class="text-link" href="{% url 'customer_billing_address' %}">Add Billing Address</a>{% endif %}
+      {% if billing_address %}<div class="checkout-billing-summary"><h3>Billing Address</h3><div class="address-display"><strong>{{ billing_address.full_name }}</strong><span>{{ billing_address.line1 }}</span><span>{{ billing_address.city }}, {{ billing_address.state }} - {{ billing_address.postal_code }}</span>{% if billing_address.gstin %}<span>GSTIN: {{ billing_address.gstin }}</span>{% endif %}</div><a class="text-link" href="{% url 'customer_billing_address' %}">Edit Billing Address</a></div>{% else %}<p class="decision-note">No billing address is saved yet. You can add one from your account before placing an order.</p><a class="text-link" href="{% url 'customer_billing_address' %}">Add Billing Address</a>{% endif %}
     </div>
     <div class="checkout-summary-column">
       <aside class="summary-card">

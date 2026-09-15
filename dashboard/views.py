@@ -19,6 +19,7 @@ from accounts.decorators import user_role
 from accounts.forms import AdminLoginForm
 from catalog.models import Category, Product, ProductImage, ProductReview
 from inventory.models import InventoryRecord, StockMovement
+from orders.invoices import InvoiceGenerationError, generate_invoice
 from orders.models import Order, OrderItem
 from .forms import (
     AgentManageForm,
@@ -163,9 +164,18 @@ def order_detail(request, order_number):
     order = get_object_or_404(Order.objects.select_related("customer", "shipping_address").prefetch_related("items"), order_number=order_number)
     form = OrderStatusForm(request.POST or None, instance=order)
     if request.method == "POST" and form.is_valid():
-        form.save()
-        messages.success(request, "Order status updated.")
-        return redirect("admin_order_detail", order_number=order.order_number)
+        if form.cleaned_data["status"] == Order.PACKED:
+            try:
+                invoice = generate_invoice(order, request.user, form.cleaned_data.get("invoice_from_address", ""))
+            except InvoiceGenerationError as error:
+                form.add_error("invoice_from_address", str(error))
+            else:
+                messages.success(request, f"Order marked as Packed and invoice generated successfully. Invoice No: {invoice.invoice_number}")
+                return redirect("admin_order_detail", order_number=order.order_number)
+        else:
+            form.save()
+            messages.success(request, "Order status updated.")
+            return redirect("admin_order_detail", order_number=order.order_number)
     return render(request, "dashboard/admin/order_detail.html", {"order": order, "form": form})
 
 

@@ -216,3 +216,11 @@ PUBLIC_SITE_URL = os.environ.get(
 
 RAZORPAY_KEY_ID = os.environ.get("RAZORPAY_KEY_ID", "").strip()
 RAZORPAY_KEY_SECRET = os.environ.get("RAZORPAY_KEY_SECRET", "").strip()
+
+INVOICE_COMPANY_NAME = os.environ.get("INVOICE_COMPANY_NAME", "PHOENIX INTERIOR HUB").strip()
+INVOICE_COMPANY_ADDRESS = os.environ.get("INVOICE_COMPANY_ADDRESS", "").strip()
+INVOICE_COMPANY_EMAIL = os.environ.get("INVOICE_COMPANY_EMAIL", "phoenixinteriorhub@gmail.com").strip()
+INVOICE_COMPANY_MOBILE = os.environ.get("INVOICE_COMPANY_MOBILE", "7306430531").strip()
+INVOICE_COMPANY_GSTIN = os.environ.get("INVOICE_COMPANY_GSTIN", "32AGSPA6127E1ZQ").strip().upper()
+INVOICE_COMPANY_STATE = os.environ.get("INVOICE_COMPANY_STATE", "Kerala").strip()
+INVOICE_PRICES_INCLUDE_GST = env_bool("INVOICE_PRICES_INCLUDE_GST", True)

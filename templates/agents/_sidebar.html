@@ -1,6 +1,7 @@
 <a href="{% url 'agent_dashboard' %}">Dashboard</a>
 <a href="{% url 'shop' %}">Shop</a>
 <a href="{% url 'agent_orders' %}">My Orders</a>
+<a class="{% if request.resolver_match.url_name == 'agent_invoices' or request.resolver_match.url_name == 'agent_invoice_detail' or request.resolver_match.url_name == 'agent_invoice_pdf' %}is-active{% endif %}" href="{% url 'agent_invoices' %}">Invoices</a>
 <a href="{% url 'agent_customers' %}">Customers</a>
 <a href="{% url 'agent_profile' %}">Profile</a>
 <a class="{% if request.resolver_match.url_name == 'agent_address' or request.resolver_match.url_name == 'agent_billing_address' or request.resolver_match.url_name == 'agent_delivery_address' %}is-active{% endif %}" href="{% url 'agent_address' %}">Address</a>

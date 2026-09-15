@@ -20,6 +20,7 @@ class Address(models.Model):
     state = models.CharField(max_length=100)
     postal_code = models.CharField(max_length=20)
     country = models.CharField(max_length=80, default="India")
+    gstin = models.CharField(max_length=15, blank=True, default="")
     is_default = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True, null=True)
     updated_at = models.DateTimeField(auto_now=True, null=True)
@@ -75,6 +76,8 @@ class Order(models.Model):
     subtotal_before_agent_discount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     shipping_address = models.ForeignKey(Address, on_delete=models.PROTECT, blank=True, null=True)
     billing_address = models.ForeignKey(Address, on_delete=models.PROTECT, blank=True, null=True, related_name="billed_orders")
+    billing_gstin = models.CharField(max_length=15, blank=True, default="")
+    invoice_from_address = models.TextField(blank=True, default="")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PENDING)
     payment_status = models.CharField(max_length=20, choices=PAYMENT_CHOICES, default="pending")
     payment_method = models.CharField(max_length=30, choices=PAYMENT_METHOD_CHOICES, default="razorpay")
@@ -121,6 +124,7 @@ class OrderItem(models.Model):
     variant_colour = models.CharField(max_length=80, blank=True)
     variant_thickness = models.CharField(max_length=80, blank=True)
     variant_finish = models.CharField(max_length=100, blank=True)
+    gst_rate_snapshot = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     selling_price_snapshot = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
     promo_price_snapshot = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
     subpromo_price_snapshot = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
@@ -148,3 +152,64 @@ class PaymentRecord(models.Model):
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     raw_response = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class SequenceCounter(models.Model):
+    name = models.CharField(max_length=30, primary_key=True)
+    next_value = models.PositiveIntegerField(default=1)
+
+
+class Invoice(models.Model):
+    B2C = "B2C"
+    B2B = "B2B"
+    TYPE_CHOICES = [(B2C, "B2C"), (B2B, "B2B")]
+
+    order = models.OneToOneField(Order, on_delete=models.PROTECT, related_name="invoice")
+    invoice_number = models.CharField(max_length=32, unique=True)
+    invoice_type = models.CharField(max_length=3, choices=TYPE_CHOICES)
+    invoice_date = models.DateTimeField()
+    company_name = models.CharField(max_length=180)
+    company_address = models.TextField(blank=True)
+    company_email = models.EmailField(blank=True)
+    company_mobile = models.CharField(max_length=30, blank=True)
+    company_gstin = models.CharField(max_length=15, blank=True)
+    from_address = models.TextField()
+    billing_name = models.CharField(max_length=140, blank=True)
+    billing_address = models.TextField(blank=True)
+    billing_phone = models.CharField(max_length=24, blank=True)
+    billing_gstin = models.CharField(max_length=15, blank=True)
+    shipping_name = models.CharField(max_length=140, blank=True)
+    shipping_address = models.TextField(blank=True)
+    shipping_phone = models.CharField(max_length=24, blank=True)
+    shipping_state = models.CharField(max_length=100, blank=True)
+    shipping_state_code = models.CharField(max_length=3, blank=True)
+    shipping_gstin = models.CharField(max_length=15, blank=True)
+    taxable_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    cgst_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    sgst_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    igst_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    wallet_discount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    round_off = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+    grand_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    amount_in_words = models.CharField(max_length=240, blank=True)
+    generated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True, related_name="generated_invoices")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-invoice_date"]
+
+
+class InvoiceItem(models.Model):
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name="items")
+    line_number = models.PositiveIntegerField()
+    description = models.CharField(max_length=180)
+    hsn_code = models.CharField(max_length=20, blank=True)
+    gst_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    quantity = models.PositiveIntegerField()
+    unit = models.CharField(max_length=12)
+    taxable_unit_rate = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    taxable_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    cgst_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    sgst_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    igst_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    line_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)

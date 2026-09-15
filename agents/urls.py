@@ -1,6 +1,7 @@
 from django.urls import path
 
 from . import views
+from orders import invoice_views
 
 urlpatterns = [
     path("", views.agent_entry, name="agent_entry"),
@@ -8,6 +9,9 @@ urlpatterns = [
     path("dashboard/", views.dashboard, name="agent_dashboard"),
     path("shop/", views.shop_redirect, name="agent_shop"),
     path("orders/", views.orders, name="agent_orders"),
+    path("invoices/", invoice_views.agent_invoices, name="agent_invoices"),
+    path("invoices/<int:invoice_id>/", invoice_views.agent_invoice_detail, name="agent_invoice_detail"),
+    path("invoices/<int:invoice_id>/pdf/", invoice_views.agent_invoice_pdf, name="agent_invoice_pdf"),
     path("customers/", views.customers, name="agent_customers"),
     path("profile/", views.profile, name="agent_profile"),
     path("address/", views.address, name="agent_address"),

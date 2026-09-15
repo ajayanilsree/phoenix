@@ -1338,6 +1338,23 @@ form.checkout-layout > .checkout-summary-column > .place-order-button {
 }
 
 .order-success-card { max-width: 720px; margin: 0 auto; padding: 48px; background: var(--white); border: 1px solid var(--border); text-align: center; }
+.invoice-sheet { max-width: 1120px; margin-inline: auto; }
+.invoice-header, .invoice-parties { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 18px; padding: 18px; border: 1px solid var(--border); background: var(--white); }
+.invoice-header { align-items: start; }
+.invoice-header img { width: 130px; height: auto; object-fit: contain; }
+.invoice-header h2 { margin: 0 0 8px; color: var(--navy); }
+.invoice-header p, .invoice-parties { margin: 0; color: var(--muted); line-height: 1.55; }
+.invoice-parties { grid-template-columns: 1fr 1fr; margin-top: 14px; }
+.invoice-parties strong { color: var(--navy); }
+.invoice-totals { display: grid; grid-template-columns: 1fr auto; gap: 8px 24px; max-width: 380px; margin: 18px 0 18px auto; color: var(--muted); }
+.invoice-totals strong { color: var(--navy); text-align: right; }
+.invoice-totals .total { padding-top: 10px; border-top: 1px solid var(--border); font-size: 1.12rem; }
+.invoice-table-total td { background: #f0e8df; color: var(--navy); font-weight: 800; }
+.invoice-from-field { display: grid; gap: 6px; min-width: min(360px, 100%); color: var(--muted); font-size: .82rem; font-weight: 700; }
+.invoice-from-field textarea { min-height: 74px; }
+.invoice-signature { display: grid; justify-items: start; gap: 6px; margin: 24px 0 18px; padding: 14px 18px; border: 1px solid var(--border); text-align: left; color: var(--navy); }
+.invoice-signature img { display: block; width: 150px; height: 64px; object-fit: cover; object-position: center; }
+@media (max-width: 720px) { .invoice-header, .invoice-parties { grid-template-columns: 1fr; } .invoice-header img { width: 110px; } .invoice-totals { margin-left: 0; } .invoice-status-form { align-items: stretch; flex-direction: column; } .invoice-from-field { min-width: 0; } }
 .order-success-card h1 { margin-bottom: 14px; color: var(--navy); }
 .order-success-card > p:not(.eyebrow) { color: var(--muted); }
 .order-success-details { display: grid; gap: 14px; margin: 30px 0; padding: 22px; background: var(--bg); text-align: left; }

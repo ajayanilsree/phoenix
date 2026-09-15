@@ -10,7 +10,7 @@ from accounts.decorators import user_role
 from accounts.models import AgentWallet
 from accounts.forms import AgentLoginForm
 from catalog.models import Product
-from orders.forms import AddressForm
+from orders.forms import AddressForm, BillingAddressForm
 from orders.models import Address, Order
 from orders.rewards import eligible_agent_orders, reconcile_agent_rewards
 
@@ -135,7 +135,8 @@ def address(request, address_type=None):
     saved_address = billing_address if address_type == Address.BILLING else delivery_address
     is_editing = address_type in {Address.BILLING, Address.DELIVERY} and (request.method == "POST" or request.GET.get("edit") == "1" or saved_address is None)
     if request.method == "POST" and is_editing:
-        form = AddressForm(request.POST, instance=saved_address)
+        form_class = BillingAddressForm if address_type == Address.BILLING else AddressForm
+        form = form_class(request.POST, instance=saved_address)
         if form.is_valid():
             agent_address = form.save(commit=False)
             agent_address.user = request.user
@@ -146,7 +147,8 @@ def address(request, address_type=None):
             messages.success(request, f"Your {agent_address.get_address_type_display().lower()} address has been saved.")
             return redirect("agent_address") if address_type is None else redirect("agent_" + address_type + "_address")
     elif is_editing:
-        form = AddressForm(instance=saved_address)
+        form_class = BillingAddressForm if address_type == Address.BILLING else AddressForm
+        form = form_class(instance=saved_address)
     else:
         form = None
     return render(

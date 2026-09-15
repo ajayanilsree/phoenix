@@ -1,6 +1,5 @@
 from decimal import Decimal, ROUND_HALF_UP
 import logging
-from uuid import uuid4
 
 from django.conf import settings
 from django.contrib import messages
@@ -20,6 +19,7 @@ from .forms import AgentPromoForm, CheckoutAddressForm
 from .models import Address, Order, OrderItem, PaymentRecord
 from .payment import get_razorpay_client
 from .rewards import sync_agent_reward
+from .invoices import next_sequence
 
 PROMO_SESSION_KEY = "agent_promo_code"
 SUBPROMO_SESSION_KEY = "agent_subpromo_code"
@@ -187,7 +187,7 @@ def create_or_update_pending_order(request, cart, form, summary, delivery_addres
             ).first()
         if order is None:
             order = Order.objects.create(
-                order_number=f"PHX-{uuid4().hex[:8].upper()}",
+                order_number=f"PHXS{next_sequence('order'):06d}",
                 customer=request.user,
             )
         else:
@@ -206,6 +206,7 @@ def create_or_update_pending_order(request, cart, form, summary, delivery_addres
         order.tax_total = summary["tax_total"]
         order.shipping_address = address
         order.billing_address = billing_address
+        order.billing_gstin = billing_address.gstin if billing_address else ""
         order.payment_method = "razorpay"
         order.payment_status = "pending"
         order.status = Order.PENDING
@@ -222,12 +223,13 @@ def create_or_update_pending_order(request, cart, form, summary, delivery_addres
                 order=order,
                 product=item.product,
                 variant=item.variant,
-                product_name=item.product.name,
+                product_name=item.variant.name if item.variant else item.product.name,
                 sku=item.variant.sku if item.variant else item.product.sku,
                 hsn_code=(item.variant.hsn_code or item.product.hsn_code) if item.variant else item.product.hsn_code,
                 selected_variant=item.variant.name if item.variant else "",
                 variant_sku=item.variant.sku if item.variant else "",
                 variant_size=item.variant.size if item.variant else "",
+                gst_rate_snapshot=getattr(source, "gst_rate", 0) or 0,
                 variant_colour=item.variant.colour if item.variant else "",
                 variant_thickness=item.variant.thickness if item.variant else "",
                 variant_finish=item.variant.finish if item.variant else "",

@@ -1,0 +1,7 @@
+{% extends "base/dashboard.html" %}
+{% block sidebar %}{% include sidebar_template %}{% endblock %}
+{% block title %}{{ title }} | Phoenix Interior Hub{% endblock %}
+{% block heading %}{{ title }}{% endblock %}
+{% block content %}
+<section class="panel"><div class="table-wrap"><table><thead><tr><th>Invoice</th><th>Order</th><th>Date</th><th>Amount</th><th>Actions</th></tr></thead><tbody>{% for invoice in invoices %}<tr><td>{{ invoice.invoice_number }}</td><td>{{ invoice.order.order_number }}</td><td>{{ invoice.invoice_date|date:"d M Y" }}</td><td>₹{{ invoice.grand_total }}</td><td><a class="btn btn-primary" href="{% url invoice_pdf_url invoice.id %}">Download PDF</a></td></tr>{% empty %}<tr><td colspan="5">No invoices available yet.</td></tr>{% endfor %}</tbody></table></div></section>
+{% endblock %}

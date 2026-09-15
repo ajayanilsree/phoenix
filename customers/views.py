@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 
 from accounts.decorators import role_required
-from orders.forms import CustomerAddressForm
+from orders.forms import BillingAddressForm, CustomerAddressForm
 from orders.models import Address
 from orders.models import Order
 
@@ -51,7 +51,8 @@ def address(request, address_type=None):
     is_editing = address_type in {Address.BILLING, Address.DELIVERY} and (request.method == "POST" or request.GET.get("edit") == "1" or saved_address is None)
 
     if request.method == "POST":
-        form = CustomerAddressForm(request.POST, instance=saved_address)
+        form_class = BillingAddressForm if address_type == Address.BILLING else CustomerAddressForm
+        form = form_class(request.POST, instance=saved_address)
         if form.is_valid():
             customer_address = form.save(commit=False)
             customer_address.user = request.user
@@ -62,7 +63,8 @@ def address(request, address_type=None):
             messages.success(request, f"Your {customer_address.get_address_type_display().lower()} address has been saved.")
             return redirect("customer_address") if address_type is None else redirect("customer_" + address_type + "_address")
     else:
-        form = CustomerAddressForm(instance=saved_address)
+        form_class = BillingAddressForm if address_type == Address.BILLING else CustomerAddressForm
+        form = form_class(instance=saved_address)
 
     return render(
         request,

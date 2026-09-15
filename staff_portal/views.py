@@ -16,6 +16,7 @@ from orders.models import Order
 from dashboard.views import product_form as shared_product_form
 from dashboard.views import product_image_delete as shared_product_image_delete
 from dashboard.views import product_toggle as shared_product_toggle
+from orders.invoices import InvoiceGenerationError, generate_invoice
 
 
 def paginate(request, queryset, per_page=12):
@@ -72,9 +73,20 @@ def update_order_status(request, order_number):
         raise PermissionDenied
     order = get_object_or_404(Order, order_number=order_number)
     if request.method == "POST":
-        order.status = request.POST.get("status", order.status)
-        order.save(update_fields=["status", "updated_at"])
-        messages.success(request, "Order status updated.")
+        form = OrderStatusForm(request.POST, instance=order)
+        if form.is_valid():
+            if form.cleaned_data["status"] == Order.PACKED:
+                try:
+                    invoice = generate_invoice(order, request.user, form.cleaned_data.get("invoice_from_address", ""))
+                except InvoiceGenerationError as error:
+                    messages.error(request, str(error))
+                else:
+                    messages.success(request, f"Order marked as Packed and invoice generated successfully. Invoice No: {invoice.invoice_number}")
+            else:
+                form.save()
+                messages.success(request, "Order status updated.")
+        else:
+            messages.error(request, "Please select a valid order status.")
     return redirect(request.POST.get("next") or "employee_orders")
 
 
@@ -103,9 +115,18 @@ def order_detail(request, order_number):
     order = get_object_or_404(Order.objects.select_related("customer", "shipping_address").prefetch_related("items"), order_number=order_number)
     form = OrderStatusForm(request.POST or None, instance=order)
     if request.method == "POST" and form.is_valid():
-        form.save()
-        messages.success(request, "Order status updated.")
-        return redirect("employee_order_detail", order_number=order.order_number)
+        if form.cleaned_data["status"] == Order.PACKED:
+            try:
+                invoice = generate_invoice(order, request.user, form.cleaned_data.get("invoice_from_address", ""))
+            except InvoiceGenerationError as error:
+                form.add_error("invoice_from_address", str(error))
+            else:
+                messages.success(request, f"Order marked as Packed and invoice generated successfully. Invoice No: {invoice.invoice_number}")
+                return redirect("employee_order_detail", order_number=order.order_number)
+        else:
+            form.save()
+            messages.success(request, "Order status updated.")
+            return redirect("employee_order_detail", order_number=order.order_number)
     return render(request, "staff_portal/order_detail.html", {"order": order, "form": form})
 
 

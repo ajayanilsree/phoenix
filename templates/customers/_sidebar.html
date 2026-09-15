@@ -1,0 +1,7 @@
+<a href="{% url 'customer_dashboard' %}">Overview</a>
+<a href="{% url 'shop' %}">Shop</a>
+<a href="{% url 'customer_orders' %}">My Orders</a>
+<a class="{% if request.resolver_match.url_name == 'customer_invoices' or request.resolver_match.url_name == 'customer_invoice_detail' or request.resolver_match.url_name == 'customer_invoice_pdf' %}is-active{% endif %}" href="{% url 'customer_invoices' %}">Invoices</a>
+<a href="{% url 'customer_profile' %}">Profile</a>
+<a href="{% url 'customer_address' %}">Address</a>
+<form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Logout</button></form>

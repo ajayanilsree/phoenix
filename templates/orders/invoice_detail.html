@@ -1,0 +1,21 @@
+{% extends "base/dashboard.html" %}
+{% load static %}
+{% block sidebar %}{% include sidebar_template %}{% endblock %}
+{% block title %}{{ invoice.invoice_number }} | Phoenix Interior Hub{% endblock %}
+{% block heading %}Tax Invoice{% endblock %}
+{% block content %}
+<section class="panel invoice-sheet">
+  <div class="invoice-header">
+    <img src="{% static 'img/phoenix-logo-brown.png' %}" alt="Phoenix Interior Hub">
+    <div><h2>{{ invoice.company_name }}</h2><p>{{ invoice.company_address|linebreaksbr }}<br>{{ invoice.company_email }}<br>Mobile: {{ invoice.company_mobile }}<br><strong>GSTIN: {{ company_gstin|default:"-" }}</strong></p></div>
+    <div><strong>GST TAX INVOICE</strong><p>Invoice No: {{ invoice.invoice_number }}<br>Invoice Date: {{ invoice.invoice_date|date:"d M Y" }}<br>Order No: {{ invoice.order.order_number }}<br>Order Date: {{ invoice.order.created_at|date:"d M Y" }}</p></div>
+  </div>
+  <div class="invoice-parties"><div><strong>Billed To</strong><br>{{ invoice.billing_name }}<br>{{ invoice.billing_address|linebreaksbr }}<br>{{ invoice.billing_phone }}<br>GSTIN: {{ invoice.billing_gstin|default:"-" }}</div><div><strong>Shipped To</strong><br>{{ invoice.shipping_name }}<br>{{ invoice.shipping_address|linebreaksbr }}<br>{{ invoice.shipping_phone }}<br>{{ invoice.shipping_state }} {{ invoice.shipping_gstin }}</div></div>
+  <div class="table-wrap"><table><thead><tr><th>Sl No</th><th>Description</th><th>HSN</th><th>GST %</th><th>Qty</th><th>Unit</th><th>Rate</th><th>Amount</th></tr></thead><tbody>{% for item in invoice.items.all %}<tr><td>{{ item.line_number }}</td><td>{{ item.description }}</td><td>{{ item.hsn_code|default:"-" }}</td><td>{{ item.gst_rate }}%</td><td>{{ item.quantity }}</td><td>{{ item.unit }}</td><td>₹{{ item.taxable_unit_rate }}</td><td>₹{{ item.line_total }}</td></tr>{% endfor %}<tr class="invoice-table-total"><td></td><td>Total</td><td></td><td></td><td>{{ total_quantity }}</td><td></td><td></td><td>₹{{ invoice.grand_total }}</td></tr></tbody></table></div>
+  <div class="invoice-totals"><span>Taxable Total</span><strong>₹{{ invoice.taxable_total }}</strong><span>CGST</span><strong>₹{{ invoice.cgst_total }}</strong><span>SGST</span><strong>₹{{ invoice.sgst_total }}</strong><span>Discount</span><strong>₹{{ invoice.wallet_discount }}</strong><span class="total">Grand Total</span><strong class="total">₹{{ invoice.grand_total }}</strong></div>
+  <p><strong>Amount in words:</strong> {{ invoice.amount_in_words }}</p>
+  <p class="invoice-from"><strong>From Address</strong><br>{{ invoice.from_address|linebreaksbr }}</p>
+  <div class="invoice-signature"><strong>For PHOENIX INTERIOR HUB</strong><img src="{% static 'img/invoice-signature.png' %}" alt="Authorised signature" width="150" height="64" style="width:150px;height:64px;object-fit:cover;object-position:center;"><strong>AUTHORISED SIGNATORY</strong></div>
+  <a class="btn btn-primary" href="{% url invoice_pdf_url invoice.id %}">Download PDF</a>
+</section>
+{% endblock %}

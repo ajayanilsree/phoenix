@@ -1,5 +1,6 @@
 <a class="{% if request.resolver_match.url_name == 'admin_dashboard' %}is-active{% endif %}" href="{% url 'admin_dashboard' %}">Dashboard</a>
 <a class="{% if request.resolver_match.url_name == 'admin_orders' %}is-active{% endif %}" href="{% url 'admin_orders' %}">Orders</a>
+<a class="{% if request.resolver_match.url_name == 'admin_invoices' %}is-active{% endif %}" href="{% url 'admin_invoices' %}">Invoices</a>
 <a class="{% if request.resolver_match.url_name == 'admin_products' %}is-active{% endif %}" href="{% url 'admin_products' %}">Products</a>
 <a class="{% if request.resolver_match.url_name == 'admin_reviews' %}is-active{% endif %}" href="{% url 'admin_reviews' %}">Reviews</a>
 <a class="{% if request.resolver_match.url_name == 'admin_categories' %}is-active{% endif %}" href="{% url 'admin_categories' %}">Categories</a>

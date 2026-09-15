@@ -7,4 +7,5 @@ django-cloudinary-storage>=0.3
 razorpay>=2.0.1,<3
 gunicorn
 whitenoise
+reportlab>=4.0
 dj-database-url

@@ -1,5 +1,6 @@
 <a href="{% url 'employee_dashboard' %}">Dashboard</a>
 <a href="{% url 'employee_orders' %}">Orders</a>
+<a class="{% if request.resolver_match.url_name == 'employee_invoices' or request.resolver_match.url_name == 'employee_invoice_detail' or request.resolver_match.url_name == 'employee_invoice_pdf' %}is-active{% endif %}" href="{% url 'employee_invoices' %}">Invoices</a>
 <a href="{% url 'employee_products' %}">Products</a>
 <a href="{% url 'employee_inventory' %}">Inventory</a>
 <a href="{% url 'employee_customers' %}">Customers</a>

@@ -47,6 +47,7 @@ class ProductManageForm(forms.ModelForm):
             "promo_price",
             "subpromo_price",
             "agent_redeem_percentage",
+            "gst_rate",
             "unit_type",
             "size",
             "thickness",
@@ -64,6 +65,7 @@ class ProductManageForm(forms.ModelForm):
             "promo_price": "Promo Price",
             "subpromo_price": "Sub Promo Price",
             "agent_redeem_percentage": "Agent Redeem Percentage (%)",
+            "gst_rate": "GST Rate (%)",
         }
         widgets = {
             "full_description": forms.Textarea(attrs={"rows": 5}),
@@ -147,8 +149,8 @@ class ProductManageForm(forms.ModelForm):
 class ProductVariantForm(forms.ModelForm):
     class Meta:
         model = ProductVariant
-        fields = ["name", "description", "sku", "hsn_code", "size", "thickness", "colour", "finish", "unit_type", "original_price", "selling_price", "promo_price", "subpromo_price", "agent_redeem_percentage", "stock", "low_stock_threshold"]
-        labels = {"name": "Variant Name", "description": "Variant Product Description", "hsn_code": "HSN Code", "colour": "Color", "unit_type": "Unit Type", "original_price": "Original Price", "selling_price": "Discount Price / Selling Price"}
+        fields = ["name", "description", "sku", "hsn_code", "size", "thickness", "colour", "finish", "unit_type", "original_price", "selling_price", "promo_price", "subpromo_price", "agent_redeem_percentage", "gst_rate", "stock", "low_stock_threshold"]
+        labels = {"name": "Variant Name", "description": "Variant Product Description", "hsn_code": "HSN Code", "colour": "Color", "unit_type": "Unit Type", "original_price": "Original Price", "selling_price": "Discount Price / Selling Price", "gst_rate": "GST Rate (%)"}
         widgets = {"description": forms.Textarea(attrs={"rows": 3, "placeholder": "Describe this variant..."})}
 
     def __init__(self, *args, **kwargs):
@@ -164,6 +166,7 @@ class ProductVariantForm(forms.ModelForm):
             "promo_price",
             "subpromo_price",
             "agent_redeem_percentage",
+            "gst_rate",
             "stock",
             "low_stock_threshold",
         }
@@ -269,13 +272,15 @@ class ProductVariantInventoryUpdateForm(forms.ModelForm):
 
 
 class OrderStatusForm(forms.ModelForm):
+    invoice_from_address = forms.CharField(required=False, label="Invoice From Address", widget=forms.Textarea(attrs={"rows": 3, "placeholder": "Enter the dispatch/from address for this invoice"}))
+
     class Meta:
         model = Order
         fields = ["status"]
 
     def clean_status(self):
         status = self.cleaned_data["status"]
-        if self.instance.payment_method == "razorpay" and self.instance.payment_status != "paid" and status != Order.PENDING:
+        if self.instance.payment_method == "razorpay" and self.instance.payment_status != "paid" and status not in {Order.PENDING, Order.PACKED}:
             raise ValidationError("A Razorpay order can only be confirmed after payment is verified.")
         return status
 

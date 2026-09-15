@@ -50,6 +50,23 @@ class CustomerAddressForm(AddressForm):
     pass
 
 
+class BillingAddressForm(AddressForm):
+    gstin = forms.CharField(
+        label="GSTIN",
+        max_length=15,
+        required=False,
+    )
+
+    class Meta(AddressForm.Meta):
+        fields = AddressForm.Meta.fields + ["gstin"]
+
+    def clean_gstin(self):
+        gstin = self.cleaned_data.get("gstin", "").strip().upper()
+        if gstin and (len(gstin) != 15 or not gstin.isalnum()):
+            raise ValidationError("Enter a valid 15-character GSTIN.")
+        return gstin
+
+
 class CheckoutAddressForm(AddressForm):
     use_saved_delivery = forms.BooleanField(required=False, label="Use my saved delivery address")
     use_billing_address = forms.BooleanField(required=False, label="Use my billing address as the delivery address")
