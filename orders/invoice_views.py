@@ -75,7 +75,11 @@ def invoice_pdf(request, invoice_id, role):
             return HttpResponse(str(error), status=503)
         invoice.refresh_from_db()
     try:
-        file_handle = invoice.pdf_file.open("rb")
+        storage = invoice.pdf_file.storage
+        if hasattr(storage, "open_for_download"):
+            file_handle = storage.open_for_download(invoice.pdf_file.name)
+        else:
+            file_handle = storage.open(invoice.pdf_file.name, "rb")
     except Exception:
         from .invoices import logger
         logger.exception("Stored invoice PDF could not be opened for invoice %s", invoice.invoice_number)
