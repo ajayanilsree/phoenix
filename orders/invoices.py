@@ -1,4 +1,5 @@
 from decimal import Decimal, ROUND_HALF_UP
+import logging
 
 from django.conf import settings
 from django.db import transaction
@@ -20,6 +21,7 @@ UNIT_LABELS = {
     "square_foot": "SQFT",
 }
 STATE_CODES = {"kerala": "32"}
+logger = logging.getLogger(__name__)
 
 
 class InvoiceGenerationError(Exception):
@@ -127,6 +129,11 @@ def generate_invoice(order, generated_by, from_address):
             raise InvoiceGenerationError("Invoice can only be generated after payment is confirmed.")
         if not from_address:
             raise InvoiceGenerationError("Please enter the invoice From Address.")
+        if not order.billing_address and not order.shipping_address:
+            raise InvoiceGenerationError("Invoice cannot be generated because the billing or delivery address is missing.")
+        items = list(order.items.select_related("product", "variant").all())
+        if not items:
+            raise InvoiceGenerationError("Invoice cannot be generated because the order has no products.")
         details = invoice_company_details()
         billing = order.billing_address
         shipping = order.shipping_address or order.billing_address
@@ -158,8 +165,21 @@ def generate_invoice(order, generated_by, from_address):
             generated_by=generated_by,
         )
         taxable_total = cgst_total = sgst_total = igst_total = Decimal("0.00")
-        for line_number, item in enumerate(order.items.all(), start=1):
-            rate = Decimal(item.gst_rate_snapshot or 0)
+        for line_number, item in enumerate(items, start=1):
+            source = item.variant or item.product
+            source_rate = getattr(source, "gst_rate", 0)
+            raw_rate = item.gst_rate_snapshot if item.gst_rate_snapshot not in (None, 0, Decimal("0.00")) else source_rate
+            try:
+                rate = Decimal(str(raw_rate or 0))
+            except (TypeError, ValueError, ArithmeticError) as error:
+                raise InvoiceGenerationError(f"Invoice cannot be generated because GST Rate is invalid for {item.product_name or 'this product'}.") from error
+            if rate < 0 or rate > 100:
+                raise InvoiceGenerationError(f"Invoice cannot be generated because GST Rate is invalid for {item.product_name or 'this product'}.")
+            description = item.product_name or item.selected_variant or getattr(source, "name", "Product")
+            hsn_code = item.hsn_code or getattr(source, "hsn_code", "")
+            unit_type = item.unit_type or getattr(source, "unit_type", "piece")
+            if not item.quantity or item.quantity < 1:
+                raise InvoiceGenerationError(f"Invoice cannot be generated because quantity is invalid for {description}.")
             taxable, cgst, sgst, igst = tax_for_line(item.line_total, rate)
             taxable_total += taxable
             cgst_total += cgst
@@ -168,11 +188,11 @@ def generate_invoice(order, generated_by, from_address):
             InvoiceItem.objects.create(
                 invoice=invoice,
                 line_number=line_number,
-                description=item.product_name,
-                hsn_code=item.hsn_code,
+                description=description,
+                hsn_code=hsn_code,
                 gst_rate=rate,
                 quantity=item.quantity,
-                unit=UNIT_LABELS.get(item.unit_type, item.unit_type.upper()),
+                unit=UNIT_LABELS.get(unit_type, unit_type.upper()),
                 taxable_unit_rate=money(taxable / item.quantity),
                 taxable_amount=taxable,
                 cgst_amount=cgst,

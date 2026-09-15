@@ -54,6 +54,20 @@ class InvoiceGenerationTests(TestCase):
         invoice = generate_invoice(self.order, self.staff, "Phoenix Warehouse")
         self.assertEqual(invoice.invoice_number, "PHXINTB2C000001")
 
+    def test_legacy_item_snapshots_fall_back_to_product_data(self):
+        item = self.order.items.first()
+        item.product_name = ""
+        item.hsn_code = ""
+        item.gst_rate_snapshot = 0
+        item.unit_type = ""
+        item.save(update_fields=["product_name", "hsn_code", "gst_rate_snapshot", "unit_type"])
+        invoice = generate_invoice(self.order, self.staff, "Phoenix Warehouse")
+        invoice_item = invoice.items.get()
+        self.assertEqual(invoice_item.description, "GST Board")
+        self.assertEqual(invoice_item.hsn_code, "")
+        self.assertEqual(invoice_item.unit, "NOS")
+        self.assertEqual(invoice_item.gst_rate, Decimal("18.00"))
+
     def test_admin_can_submit_packed_status_and_generate_invoice(self):
         self.client.login(username="invoice-admin", password="test-password")
         response = self.client.post(
