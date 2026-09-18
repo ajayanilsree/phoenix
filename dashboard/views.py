@@ -17,7 +17,7 @@ from django.views.decorators.cache import never_cache
 from accounts.models import AgentProfile, StaffProfile, UserProfile
 from accounts.decorators import user_role
 from accounts.forms import AdminLoginForm
-from catalog.models import Category, Product, ProductImage, ProductReview
+from catalog.models import Category, Product, ProductImage, ProductReview, validate_product_image_size
 from inventory.models import InventoryRecord, StockMovement
 from orders.invoices import InvoiceGenerationError, generate_invoice
 from orders.models import Order, OrderItem
@@ -239,11 +239,53 @@ def review_delete(request, review_id):
     return redirect("admin_reviews")
 
 
+def _uploaded_image_error(image):
+    extension = (image.name.rsplit(".", 1)[-1] if "." in image.name else "").lower()
+    if extension not in {"jpg", "jpeg", "png", "webp"}:
+        return "Only JPG, PNG or WEBP images are allowed."
+    try:
+        validate_product_image_size(image)
+    except ValidationError:
+        return "Image must be below 5 MB."
+    return ""
+
+
+def _validate_product_image_uploads(product, files, form, variant_formset):
+    valid = True
+    base_images = files.getlist("images") if hasattr(files, "getlist") else []
+    base_existing = product.images.filter(variant__isnull=True).count() if product else 0
+    base_total = base_existing + len(base_images)
+    if base_total > 4:
+        form.add_error(None, f"Images: Maximum 4 images are allowed. You selected {base_total}.")
+        valid = False
+    for image in base_images:
+        message = _uploaded_image_error(image)
+        if message:
+            form.add_error(None, f"Images: {message}")
+            valid = False
+
+    for index, variant_form in enumerate(variant_formset.forms):
+        if variant_form.cleaned_data.get("DELETE"):
+            continue
+        images = files.getlist(f"variant_images_{index}") if hasattr(files, "getlist") else []
+        existing_count = variant_form.instance.images.count() if variant_form.instance.pk else 0
+        total = existing_count + len(images)
+        if total > 4:
+            variant_form.add_error(None, f"Images: Maximum 4 images are allowed. You selected {total}.")
+            valid = False
+        for image in images:
+            message = _uploaded_image_error(image)
+            if message:
+                variant_form.add_error(None, f"Images: {message}")
+                valid = False
+    return valid
+
+
 def save_product_images(product, files):
     existing_count = product.images.filter(variant__isnull=True).count()
     incoming = files.getlist("images") if hasattr(files, "getlist") else []
     if existing_count + len(incoming) > 4:
-        raise ValueError("A product can have a maximum of 4 images.")
+        raise ValueError(f"Images: Maximum 4 images are allowed. You selected {existing_count + len(incoming)}.")
     for index, image in enumerate(incoming, start=existing_count):
         product_image = ProductImage(product=product, image=image, alt_text=product.name, sort_order=index, is_primary=existing_count == 0 and index == 0, variant=None)
         product_image.full_clean()
@@ -255,6 +297,10 @@ def _product_form_errors(form, variant_formset):
 
     def add_errors(scope, field_name, label, field_errors):
         for message in field_errors:
+            message = str(message)
+            if message.startswith("Images:"):
+                label = "Images"
+                message = message.removeprefix("Images:").strip()
             errors.append({
                 "scope": scope,
                 "field": field_name,
@@ -265,8 +311,12 @@ def _product_form_errors(form, variant_formset):
     for field_name, field_errors in form.errors.items():
         label = "Product"
         field_key = None if field_name == "__all__" else field_name
-        if field_key:
+        if field_name == "__all__" and any(str(error).startswith("Images:") for error in field_errors):
+            field_key = "product-images"
+        if field_key and field_key != "product-images":
             label = form.fields[field_key].label
+        elif field_key == "product-images":
+            label = "Images"
         add_errors("Base Product", field_key, label, field_errors)
 
     for message in variant_formset.non_form_errors():
@@ -275,6 +325,8 @@ def _product_form_errors(form, variant_formset):
         for field_name, field_errors in variant_form.errors.items():
             field_key = None if field_name == "__all__" else f"variants-{index - 1}-{field_name}"
             label = "Variant"
+            if field_name == "__all__" and any(str(error).startswith("Images:") for error in field_errors):
+                field_key = f"variant-images-{index - 1}"
             if field_name != "__all__":
                 label = variant_form.fields[field_name].label
             add_errors(f"Variant {index}", field_key, label, field_errors)
@@ -288,14 +340,30 @@ def product_form(request, product_id=None, staff_portal=False):
         return blocked
     product = get_object_or_404(Product, pk=product_id) if product_id else None
     form = ProductManageForm(request.POST or None, request.FILES or None, instance=product)
-    variant_data = request.POST or None
-    if (
-        request.method == "POST"
-        and request.POST.get("variant_type", Product.VARIANT_NONE) == Product.VARIANT_NONE
-        and request.POST.get("variants-INITIAL_FORMS", "0") == "0"
-    ):
-        variant_data = request.POST.copy()
-        variant_data["variants-TOTAL_FORMS"] = "0"
+    variant_data = request.POST.copy() if request.method == "POST" else None
+    if variant_data is not None:
+        try:
+            total_forms = int(variant_data.get("variants-TOTAL_FORMS", "0") or 0)
+        except (TypeError, ValueError):
+            total_forms = 0
+        try:
+            initial_forms = int(variant_data.get("variants-INITIAL_FORMS", "0") or 0)
+        except (TypeError, ValueError):
+            initial_forms = 0
+        variant_type = variant_data.get("variant_type", Product.VARIANT_NONE)
+        if variant_type == Product.VARIANT_NONE:
+            requested_count = 0
+        else:
+            try:
+                requested_count = int(variant_data.get("variant_count", "") or 0)
+            except (TypeError, ValueError):
+                requested_count = None
+        if requested_count is not None:
+            if initial_forms == 0 and requested_count <= total_forms:
+                variant_data["variants-TOTAL_FORMS"] = str(max(0, requested_count))
+                total_forms = max(0, requested_count)
+            for index in range(max(0, requested_count), total_forms):
+                variant_data[f"variants-{index}-DELETE"] = "on"
     variant_formset = ProductVariantFormSet(variant_data, request.FILES or None, instance=product, prefix="variants")
     variant_formset.variant_type = (request.POST.get("variant_type") if request.method == "POST" else (product.variant_type if product else "none")) or "none"
     variant_formset.base_value = ""
@@ -311,6 +379,8 @@ def product_form(request, product_id=None, staff_portal=False):
             variant_formset.variant_type = form.cleaned_data.get("variant_type", "none")
             variant_formset.instance.has_variants = variant_formset.variant_type != "none"
         variant_formset_valid = variant_formset.is_valid()
+        if form_valid and variant_formset_valid:
+            variant_formset_valid = _validate_product_image_uploads(product, request.FILES, form, variant_formset)
     if request.method == "POST" and form_valid and variant_formset_valid:
         try:
             with transaction.atomic():
@@ -347,7 +417,7 @@ def product_form(request, product_id=None, staff_portal=False):
                     images = request.FILES.getlist(f"variant_images_{index}")
                     existing_count = variant.images.count()
                     if existing_count + len(images) > 4:
-                        raise ValueError("Each variant can have a maximum of 4 images.")
+                        raise ValueError(f"Images: Maximum 4 images are allowed. You selected {existing_count + len(images)}.")
                     for image_index, image in enumerate(images, start=existing_count):
                         product_image = ProductImage(product=product, variant=variant, image=image, alt_text=f"{product.name} - {variant.name}", sort_order=image_index, is_primary=existing_count == 0 and image_index == 0)
                         product_image.full_clean()
@@ -366,6 +436,11 @@ def product_form(request, product_id=None, staff_portal=False):
             logger.exception("Unexpected product save failure staff_portal=%s product_id=%s", staff_portal, product_id)
             form.add_error(None, "We could not save this product. Please check the form and try again.")
     error_summary = _product_form_errors(form, variant_formset) if request.method == "POST" else []
+    base_image_errors = [
+        str(error).removeprefix("Images:").strip()
+        for error in form.non_field_errors()
+        if str(error).startswith("Images:")
+    ]
     if request.method == "POST" and request.headers.get("x-requested-with") == "XMLHttpRequest":
         return JsonResponse({"success": False, "errors": error_summary}, status=400)
     subcategory_options = {}
@@ -391,6 +466,10 @@ def product_form(request, product_id=None, staff_portal=False):
                 args=[product.id] if product else [],
             ),
             "error_summary": error_summary,
+            "base_image_errors": base_image_errors,
+            "draft_storage_key_json": json.dumps(
+                f"phoenix-product-draft-{request.user.id}-{'staff' if staff_portal else 'admin'}-{product.id if product else 'new'}"
+            ),
         },
     )
 

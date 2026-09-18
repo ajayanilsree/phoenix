@@ -199,20 +199,28 @@ class BaseProductVariantFormSet(forms.BaseInlineFormSet):
         super().clean()
         variant_type = getattr(self, "variant_type", Product.VARIANT_NONE)
         base_value = (getattr(self, "base_value", "") or "").strip().casefold()
-        seen = set()
+        seen = {}
         active_count = 0
-        for form in self.forms:
+        option_fields = ("size", "thickness", "colour", "finish")
+        for index, form in enumerate(self.forms, start=1):
             if not hasattr(form, "cleaned_data") or not form.cleaned_data or form.cleaned_data.get("DELETE"):
                 continue
             active_count += 1
             attribute = "colour" if variant_type == Product.VARIANT_COLOR else "size"
             value = (form.cleaned_data.get(attribute) or "").strip()
             key = value.casefold()
-            if base_value and key == base_value:
+            if base_value and key and key == base_value:
                 form.add_error(attribute, f"A variant with the same {attribute} as the base product already exists.")
-            if key in seen:
-                raise ValidationError(f"Duplicate {attribute} variant.")
-            seen.add(key)
+            combination = tuple((form.cleaned_data.get(field) or "").strip().casefold() for field in option_fields)
+            if any(combination):
+                previous_index = seen.get(combination)
+                if previous_index:
+                    form.add_error(
+                        None,
+                        f"Duplicates Variant {previous_index} for the selected Size/Thickness/Color/Finish combination.",
+                    )
+                else:
+                    seen[combination] = index
         if variant_type != Product.VARIANT_NONE and active_count == 0:
             raise ValidationError("Add at least one active variant or turn off Product with Variants.")
 

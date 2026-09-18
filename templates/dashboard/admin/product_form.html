@@ -28,7 +28,7 @@
     <label><span class="form-label">{{ form.variant_type.label }} <span class="required-marker">*</span></span>{{ form.variant_type }}{% for error in form.variant_type.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>
   </div></section>
   <section class="panel"><h2>Pricing</h2><div class="form-grid"><label><span class="form-label">{{ form.compare_at_price.label }} <span class="required-marker">*</span></span>{{ form.compare_at_price }}{% for error in form.compare_at_price.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label><label><span class="form-label">{{ form.price.label }} <span class="required-marker">*</span></span>{{ form.price }}{% for error in form.price.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label><label><span class="form-label">{{ form.promo_price.label }} <span class="required-marker">*</span></span>{{ form.promo_price }}{% for error in form.promo_price.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label><label><span class="form-label">{{ form.subpromo_price.label }} <span class="required-marker">*</span></span>{{ form.subpromo_price }}{% for error in form.subpromo_price.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label><label><span class="form-label">{{ form.agent_redeem_percentage.label }} <span class="required-marker">*</span></span>{{ form.agent_redeem_percentage }}{% for error in form.agent_redeem_percentage.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label></div></section>
-  <section class="panel product-images-panel"><h2>Images</h2><p class="muted">Upload up to 4 base product images. The first image is used as the primary image.</p><div class="product-image-upload"><input id="product-images" type="file" name="images" accept="image/jpeg,image/png,image/webp" multiple><p class="field-error" data-image-error role="alert" hidden></p></div>{% if product %}<h3 class="image-subheading">Existing Images</h3><div class="product-image-preview-grid">{% for image in product.images.all %}{% if not image.variant and image.image %}<div class="product-image-preview"><img src="{{ image.image.url }}" alt="{{ image.alt_text|default:product.name }}"><span class="image-preview-label">{% if forloop.first %}Primary{% else %}Image {{ forloop.counter }}{% endif %}</span><button class="image-preview-remove" type="submit" {% if staff_portal %}formaction="{% url 'employee_product_image_delete' product.id image.id %}"{% else %}formaction="{% url 'admin_product_image_delete' product.id image.id %}"{% endif %} formmethod="post" onclick="return confirm('Remove this product image?');" aria-label="Remove saved image {{ forloop.counter }}">&times;</button></div>{% endif %}{% empty %}<p class="muted">No images yet.</p>{% endfor %}</div>{% endif %}<h3 class="image-subheading" data-selected-heading hidden>Selected Images <span data-image-count></span></h3><div class="product-image-preview-grid" data-image-previews></div></section>
+  <section class="panel product-images-panel"><h2>Images</h2><p class="muted">Upload up to 4 base product images. The first image is used as the primary image.</p><div class="product-image-upload"><input id="product-images" type="file" name="images" accept="image/jpeg,image/png,image/webp" multiple>{% for error in base_image_errors %}<small class="field-error">{{ error }}</small>{% endfor %}<p class="field-error" data-image-error role="alert" hidden></p></div>{% if product %}<h3 class="image-subheading">Existing Images</h3><div class="product-image-preview-grid">{% for image in product.images.all %}{% if not image.variant and image.image %}<div class="product-image-preview"><img src="{{ image.image.url }}" alt="{{ image.alt_text|default:product.name }}"><span class="image-preview-label">{% if forloop.first %}Primary{% else %}Image {{ forloop.counter }}{% endif %}</span><button class="image-preview-remove" type="submit" {% if staff_portal %}formaction="{% url 'employee_product_image_delete' product.id image.id %}"{% else %}formaction="{% url 'admin_product_image_delete' product.id image.id %}"{% endif %} formmethod="post" onclick="return confirm('Remove this product image?');" aria-label="Remove saved image {{ forloop.counter }}">&times;</button></div>{% endif %}{% empty %}<p class="muted">No images yet.</p>{% endfor %}</div>{% endif %}<h3 class="image-subheading" data-selected-heading hidden>Selected Images <span data-image-count></span></h3><div class="product-image-preview-grid" data-image-previews></div></section>
   <section class="panel"><h2>Inventory</h2><div class="form-grid"><label><span class="form-label">{{ form.stock.label }} <span class="required-marker">*</span></span>{{ form.stock }}{% for error in form.stock.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label><label><span class="form-label">{{ form.low_stock_threshold.label }} <span class="required-marker">*</span></span>{{ form.low_stock_threshold }}{% for error in form.low_stock_threshold.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label></div></section>
   <section class="panel variant-panel" data-variant-panel>
     <h2>Product Variants</h2>
@@ -59,11 +59,11 @@
             <label><span class="form-label">{{ variant_form.agent_redeem_percentage.label }} <span class="required-marker">*</span></span>{{ variant_form.agent_redeem_percentage }}{% for error in variant_form.agent_redeem_percentage.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>
             <label><span class="form-label">{{ variant_form.stock.label }} <span class="required-marker">*</span></span>{{ variant_form.stock }}{% for error in variant_form.stock.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>
             <label><span class="form-label">{{ variant_form.low_stock_threshold.label }} <span class="required-marker">*</span></span>{{ variant_form.low_stock_threshold }}{% for error in variant_form.low_stock_threshold.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</label>
-            <label class="variant-image-field">Variant Images<input type="file" name="variant_images_{{ forloop.counter0 }}" accept="image/jpeg,image/png,image/webp" multiple data-variant-image-input></label>
+            <label class="variant-image-field">Variant Images<input id="variant-images-{{ forloop.counter0 }}" type="file" name="variant_images_{{ forloop.counter0 }}" accept="image/jpeg,image/png,image/webp" multiple data-variant-image-input></label>
           </div>
           <div class="variant-image-heading" data-variant-image-heading {% if not variant_form.instance.pk or not variant_form.instance.images.exists %}hidden{% endif %}>Selected Images <span data-variant-image-count>({% if variant_form.instance.pk %}{{ variant_form.instance.images.count }}{% else %}0{% endif %}/4)</span></div>
           <div class="product-image-preview-grid variant-image-previews" data-variant-image-previews>{% if variant_form.instance.pk %}{% for image in variant_form.instance.images.all %}<div class="product-image-preview"><img src="{{ image.image.url }}" alt="{{ image.alt_text|default:variant_form.instance.name }}"><span class="image-preview-label">{% if forloop.first %}Primary{% else %}Image {{ forloop.counter }}{% endif %}</span><button class="image-preview-remove" type="submit" {% if staff_portal %}formaction="{% url 'employee_product_image_delete' product.id image.id %}"{% else %}formaction="{% url 'admin_product_image_delete' product.id image.id %}"{% endif %} formmethod="post" onclick="return confirm('Remove this variant image?');" aria-label="Remove variant image">&times;</button></div>{% endfor %}{% endif %}</div>
-          <p class="field-error" data-variant-image-error role="alert" hidden></p>
+          {% for error in variant_form.non_field_errors %}<small class="field-error">{{ error }}</small>{% endfor %}<p class="field-error" data-variant-image-error role="alert" hidden></p>
         </div>
       {% endfor %}
     </div>
@@ -101,6 +101,7 @@
     const panel = document.querySelector("[data-variant-panel]");
     const list = document.querySelector("[data-variant-list]");
     const total = document.getElementById("id_variants-TOTAL_FORMS");
+    const initial = document.getElementById("id_variants-INITIAL_FORMS");
     if (!toggle || !count || !panel || !list || !total) return;
     const maxImages = 4;
     const maxSize = 5 * 1024 * 1024;
@@ -121,7 +122,7 @@
       const render = () => {
         grid.querySelectorAll(".variant-new-image").forEach((card) => card.remove());
         const totalImages = existingCount + selectedFiles.length;
-        heading.hidden = totalImages === 0;
+        heading.hidden = false;
         countLabel.textContent = `(${totalImages}/4)`;
         selectedFiles.forEach((file, index) => {
           const url = URL.createObjectURL(file);
@@ -135,14 +136,15 @@
       const showError = (message) => { error.textContent = message; error.hidden = !message; };
       input.addEventListener("change", () => {
         const incoming = Array.from(input.files || []);
-        const available = maxImages - existingCount - selectedFiles.length;
+        const available = maxImages - existingCount;
         let message = "";
         for (const file of incoming) {
-          if (selectedFiles.length >= Math.max(0, available)) { message = "Maximum 4 images are allowed per variant."; break; }
+          const duplicate = selectedFiles.some((old) => old.name === file.name && old.size === file.size && old.lastModified === file.lastModified);
+          if (duplicate) continue;
+          if (selectedFiles.length >= Math.max(0, available)) { message = `Maximum 4 images are allowed per variant. You selected ${existingCount + selectedFiles.length + 1}.`; break; }
           if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { message = `${file.name} is not a supported image format.`; continue; }
           if (file.size > maxSize) { message = `${file.name} is too large. Images must be 5MB or smaller.`; continue; }
-          const duplicate = selectedFiles.some((old) => old.name === file.name && old.size === file.size && old.lastModified === file.lastModified);
-          if (!duplicate) selectedFiles.push(file);
+          selectedFiles.push(file);
         }
         syncInput(); showError(message); render();
       });
@@ -166,16 +168,22 @@
     };
     toggle.addEventListener("change", () => { sync(); count.dispatchEvent(new Event("input")); });
     count.addEventListener("input", () => {
-      const wanted = Math.min(20, Math.max(1, Number(count.value || 1)));
+      const wanted = toggle.value === "none" ? 0 : Math.min(20, Math.max(1, Number(count.value || 1)));
       while (list.querySelectorAll("[data-variant-row]").length < wanted) addRow();
-      list.querySelectorAll("[data-variant-row]").forEach((row, index) => { row.hidden = index >= wanted; const deleteField = row.querySelector("input[name$='-DELETE']"); if (deleteField) deleteField.checked = index >= wanted; });
+      list.querySelectorAll("[data-variant-row]").forEach((row, index) => {
+        row.hidden = index >= wanted;
+        row.dataset.variantNumber = index + 1;
+        const deleteField = row.querySelector("input[name$='-DELETE']");
+        if (deleteField) deleteField.value = index >= wanted ? "on" : "";
+      });
+      if (initial && Number(initial.value || 0) === 0) total.value = wanted;
     });
     sync();
     const addRow = () => {
       const index = Number(total.value);
       const source = list.querySelector("[data-variant-row]");
       const row = source.cloneNode(true);
-      row.innerHTML = row.innerHTML.replaceAll(/variants-\d+/g, `variants-${index}`).replaceAll(/variant_images_\d+/g, `variant_images_${index}`);
+      row.innerHTML = row.innerHTML.replaceAll(/variants-\d+/g, `variants-${index}`).replaceAll(/variant_images_\d+/g, `variant_images_${index}`).replaceAll(/variant-images-\d+/g, `variant-images-${index}`);
       row.dataset.existingImages = "0";
       row.querySelectorAll("input, select, textarea").forEach((field) => {
         if (field.type === "hidden") field.value = "";
@@ -256,6 +264,7 @@
     const form = document.querySelector("[data-product-form]");
     const button = document.querySelector("[data-save-product]");
     if (!form || !button) return;
+    const draftKey = {{ draft_storage_key_json|safe }};
     const summary = form.querySelector("[data-error-summary]");
     const errorList = form.querySelector("[data-error-list]");
     const clearErrors = () => {
@@ -263,6 +272,11 @@
       form.querySelectorAll(".has-error").forEach((field) => field.classList.remove("has-error"));
       if (summary) summary.hidden = true;
       if (errorList) errorList.replaceChildren();
+    };
+    const fieldForError = (error) => {
+      if (!error.field) return null;
+      const id = error.field === "product-images" || error.field.startsWith("variant-images-") ? error.field : `id_${error.field}`;
+      return document.getElementById(id);
     };
     const showErrors = (errors) => {
       clearErrors();
@@ -274,7 +288,7 @@
         item.append(heading, document.createTextNode(error.message));
         errorList.appendChild(item);
         if (!error.field) return;
-        const field = document.getElementById(`id_${error.field}`);
+        const field = fieldForError(error);
         if (!field) return;
         const label = field.closest("label");
         if (!label) return;
@@ -288,8 +302,8 @@
       });
       summary.hidden = errors.length === 0;
       if (errors.length) {
-        const firstField = errors.find((error) => error.field && document.getElementById(`id_${error.field}`));
-        const target = firstField ? document.getElementById(`id_${firstField.field}`) : summary;
+        const firstField = errors.find((error) => fieldForError(error));
+        const target = firstField ? fieldForError(firstField) : summary;
         target?.scrollIntoView({ behavior: "smooth", block: "center" });
         if (target && target !== summary) target.focus({ preventScroll: true });
       }
@@ -313,6 +327,7 @@
           showErrors(payload.errors || [{ scope: "Product", label: "", message: "Unable to save the product. Please check the form and try again." }]);
           return;
         }
+        try { localStorage.removeItem(draftKey); } catch (error) { /* Storage may be disabled. */ }
         window.location.assign(payload.redirect);
       } catch (error) {
         showErrors([{ scope: "Product", label: "", message: "Unable to save the product. Please try again." }]);
@@ -322,6 +337,48 @@
         button.textContent = "Save Product";
       }
     });
+  })();
+</script>
+<script>
+  (() => {
+    const form = document.querySelector("[data-product-form]");
+    if (!form) return;
+    const draftKey = {{ draft_storage_key_json|safe }};
+    const restoreDraft = {% if request.method == "GET" %}true{% else %}false{% endif %};
+    const fields = () => [...form.querySelectorAll("input, select, textarea")].filter((field) => {
+      if (!field.name || field.type === "file" || field.type === "hidden" || field.name.endsWith("-DELETE")) return false;
+      const row = field.closest("[data-variant-row]");
+      return !row || !row.hidden;
+    });
+    const setField = (name, value) => {
+      const field = [...form.elements].find((candidate) => candidate.name === name);
+      if (!field) return;
+      if (field.type === "checkbox") field.checked = Boolean(value);
+      else field.value = value;
+    };
+    const saveDraft = () => {
+      const values = {};
+      fields().forEach((field) => { values[field.name] = field.type === "checkbox" ? field.checked : field.value; });
+      try { localStorage.setItem(draftKey, JSON.stringify(values)); } catch (error) { /* Storage may be disabled. */ }
+    };
+    const restore = () => {
+      let values;
+      try { values = JSON.parse(localStorage.getItem(draftKey) || "null"); } catch (error) { values = null; }
+      if (!values) return;
+      setField("variant_type", values.variant_type || "none");
+      document.getElementById("id_variant_type")?.dispatchEvent(new Event("change", { bubbles: true }));
+      setField("variant_count", values.variant_count || "");
+      document.getElementById("id_variant_count")?.dispatchEvent(new Event("input", { bubbles: true }));
+      Object.entries(values).forEach(([name, value]) => setField(name, value));
+      document.getElementById("id_category")?.dispatchEvent(new Event("change", { bubbles: true }));
+      Object.entries(values).forEach(([name, value]) => setField(name, value));
+      document.getElementById("id_variant_type")?.dispatchEvent(new Event("change", { bubbles: true }));
+    };
+    let timer;
+    const scheduleSave = () => { clearTimeout(timer); timer = setTimeout(saveDraft, 250); };
+    form.addEventListener("input", scheduleSave);
+    form.addEventListener("change", scheduleSave);
+    if (restoreDraft) restore();
   })();
 </script>
 {% endblock %}

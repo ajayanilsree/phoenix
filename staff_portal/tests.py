@@ -1,4 +1,7 @@
+import base64
+
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 
@@ -47,6 +50,34 @@ class StaffProductCreationTests(TestCase):
         }
         payload.update(overrides)
         return payload
+
+    def variant_payload(self, index, name, sku, size):
+        return {
+            f"variants-{index}-name": name,
+            f"variants-{index}-description": f"{name} option.",
+            f"variants-{index}-sku": sku,
+            f"variants-{index}-hsn_code": "9403",
+            f"variants-{index}-size": size,
+            f"variants-{index}-thickness": "",
+            f"variants-{index}-colour": "",
+            f"variants-{index}-finish": "",
+            f"variants-{index}-unit_type": "piece",
+            f"variants-{index}-original_price": "150.00",
+            f"variants-{index}-selling_price": "125.00",
+            f"variants-{index}-promo_price": "120.00",
+            f"variants-{index}-subpromo_price": "110.00",
+            f"variants-{index}-agent_redeem_percentage": "10",
+            f"variants-{index}-gst_rate": "18",
+            f"variants-{index}-stock": "8",
+            f"variants-{index}-low_stock_threshold": "2",
+        }
+
+    def valid_png(self, name):
+        return SimpleUploadedFile(
+            name,
+            base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="),
+            content_type="image/png",
+        )
 
     def test_staff_can_create_simple_product(self):
         response = self.client.post(reverse("employee_product_add"), self.product_payload())
@@ -127,3 +158,86 @@ class StaffProductCreationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["message"], "Product added successfully.")
         self.assertEqual(response.json()["redirect"], reverse("employee_products"))
+
+    def test_variant_count_does_not_validate_ghost_forms(self):
+        payload = self.product_payload(
+            name="Two Variant Product",
+            sku="STAFF-TWO-VARIANTS",
+            size="Base",
+            variant_type=Product.VARIANT_SIZE,
+            variant_count="2",
+            **{
+                "variants-TOTAL_FORMS": "4",
+                "variants-INITIAL_FORMS": "0",
+                **self.variant_payload(0, "Small", "STAFF-TWO-VARIANTS-S", "Small"),
+                **self.variant_payload(1, "Large", "STAFF-TWO-VARIANTS-L", "Large"),
+            },
+        )
+        response = self.client.post(reverse("employee_product_add"), payload)
+        self.assertRedirects(response, reverse("employee_products"))
+        product = Product.objects.get(sku="STAFF-TWO-VARIANTS")
+        self.assertEqual(product.variants.filter(is_active=True).count(), 2)
+
+    def test_invalid_variant_preserves_bound_values_and_only_reports_real_variant(self):
+        payload = self.product_payload(
+            name="Bound Variant Product",
+            sku="STAFF-BOUND-VARIANT",
+            size="Base",
+            variant_type=Product.VARIANT_SIZE,
+            variant_count="2",
+            **{
+                "variants-TOTAL_FORMS": "2",
+                "variants-INITIAL_FORMS": "0",
+                **self.variant_payload(0, "Small", "STAFF-BOUND-VARIANT-S", "Small"),
+                **self.variant_payload(1, "Large", "", "Large"),
+            },
+        )
+        response = self.client.post(reverse("employee_product_add"), payload)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Variant 2")
+        self.assertContains(response, "This field is required.")
+        self.assertNotContains(response, "Variant 3")
+        self.assertEqual(response.context["form"]["name"].value(), "Bound Variant Product")
+        self.assertEqual(response.context["variant_formset"].forms[0]["name"].value(), "Small")
+        self.assertFalse(Product.objects.filter(sku="STAFF-BOUND-VARIANT").exists())
+
+    def test_variant_image_limit_is_per_variant_and_not_global(self):
+        payload = self.product_payload(
+            name="Image Variant Product",
+            sku="STAFF-IMAGE-VARIANTS",
+            size="Base",
+            variant_type=Product.VARIANT_SIZE,
+            variant_count="2",
+            **{
+                "variants-TOTAL_FORMS": "2",
+                "variants-INITIAL_FORMS": "0",
+                **self.variant_payload(0, "Small", "STAFF-IMAGE-VARIANTS-S", "Small"),
+                **self.variant_payload(1, "Large", "STAFF-IMAGE-VARIANTS-L", "Large"),
+            },
+        )
+        payload["variant_images_0"] = [self.valid_png(f"small-{index}.png") for index in range(4)]
+        payload["variant_images_1"] = [self.valid_png(f"large-{index}.png") for index in range(4)]
+        response = self.client.post(reverse("employee_product_add"), payload)
+        self.assertRedirects(response, reverse("employee_products"))
+        product = Product.objects.get(sku="STAFF-IMAGE-VARIANTS")
+        self.assertEqual(product.variants.get(sku="STAFF-IMAGE-VARIANTS-S").images.count(), 4)
+        self.assertEqual(product.variants.get(sku="STAFF-IMAGE-VARIANTS-L").images.count(), 4)
+
+    def test_variant_image_limit_error_is_precise(self):
+        payload = self.product_payload(
+            name="Too Many Images",
+            sku="STAFF-TOO-MANY-IMAGES",
+            size="Base",
+            variant_type=Product.VARIANT_SIZE,
+            variant_count="1",
+            **{
+                "variants-TOTAL_FORMS": "1",
+                "variants-INITIAL_FORMS": "0",
+                **self.variant_payload(0, "Small", "STAFF-TOO-MANY-IMAGES-S", "Small"),
+            },
+        )
+        payload["variant_images_0"] = [self.valid_png(f"too-many-{index}.png") for index in range(5)]
+        response = self.client.post(reverse("employee_product_add"), payload)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Maximum 4 images are allowed. You selected 5.")
+        self.assertFalse(Product.objects.filter(sku="STAFF-TOO-MANY-IMAGES").exists())
