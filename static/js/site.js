@@ -581,6 +581,18 @@ if (sharePopover) {
   let activeShare = null;
   let toastTimer;
 
+  const shareIconUrl = document.body.dataset.shareIconUrl;
+  document.querySelectorAll("[data-share-product]").forEach((button) => {
+    const oldIcon = button.querySelector("svg");
+    if (!oldIcon || !shareIconUrl) return;
+    const icon = document.createElement("img");
+    icon.className = "product-share-icon";
+    icon.src = shareIconUrl;
+    icon.alt = "";
+    icon.setAttribute("aria-hidden", "true");
+    oldIcon.replaceWith(icon);
+  });
+
   const closeSharePopover = () => {
     sharePopover.hidden = true;
     activeShare?.setAttribute("aria-expanded", "false");

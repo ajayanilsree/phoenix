@@ -15,10 +15,10 @@
   <link rel="manifest" href="{% url 'manifest_webmanifest' %}">
   <link rel="apple-touch-icon" href="{{ STATIC_PREFIX }}pwa/icon-192.png">
   <link rel="preload" as="image" href="{% static 'img/phoenix-logo-brown.png' %}">
-  <link rel="stylesheet" href="{% static 'css/styles.css' %}?v=20260920-1">
-  <script defer src="{% static 'js/site.js' %}?v=20260920-1"></script>
+<link rel="stylesheet" href="{% static 'css/styles.css' %}?v=20260920-8">
+  <script defer src="{% static 'js/site.js' %}?v=20260920-2"></script>
 </head>
-<body class="preloader-active">
+<body class="preloader-active" data-share-icon-url="{% static 'images/icons/share-icon-v2.png' %}">
   <div id="phoenix-preloader" aria-hidden="true">
     <div class="phoenix-loader-content">
       <img src="{% static 'img/phoenix-logo-brown.png' %}" class="phoenix-loader-logo phoenix-brand-logo" alt="Phoenix Interior Hub">
