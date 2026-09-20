@@ -97,6 +97,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "cart.context_processors.cart_summary",
                 "catalog.context_processors.category_navigation",
+                "catalog.context_processors.public_site_url",
                 "chatbot.context_processors.chatbot_settings",
             ],
         },

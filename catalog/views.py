@@ -111,6 +111,34 @@ def shop(request, main_slug=None, sub_slug=None):
 
     paginator = Paginator(products, 12)
     page = paginator.get_page(request.GET.get("page"))
+    query_params = request.GET.copy()
+
+    def page_url(number):
+        query_params["page"] = number
+        return f"?{query_params.urlencode()}"
+
+    total_pages = paginator.num_pages
+    current_page = page.number
+    if current_page <= 3:
+        visible_numbers = set(range(1, min(total_pages, 5) + 1))
+    elif current_page >= total_pages - 2:
+        visible_numbers = set(range(max(1, total_pages - 4), total_pages + 1))
+    else:
+        visible_numbers = set(range(current_page - 2, current_page + 3))
+    visible_numbers.update({1, total_pages})
+    pagination_items = []
+    for number in sorted(visible_numbers):
+        if pagination_items and number > pagination_items[-1]["number"] + 1:
+            pagination_items.append({"type": "ellipsis"})
+        pagination_items.append(
+            {
+                "type": "page",
+                "number": number,
+                "url": page_url(number),
+                "is_current": number == current_page,
+            }
+        )
+
     return render(
         request,
         "catalog/shop.html",
@@ -122,6 +150,9 @@ def shop(request, main_slug=None, sub_slug=None):
             "availability": availability,
             "sort": sort,
             "catalogue_query": catalogue_query,
+            "pagination_items": pagination_items,
+            "previous_page_url": page_url(page.previous_page_number) if page.has_previous() else "",
+            "next_page_url": page_url(page.next_page_number) if page.has_next() else "",
         },
     )
 

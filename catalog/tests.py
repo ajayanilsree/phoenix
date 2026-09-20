@@ -3,7 +3,7 @@ from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse
 
-from .models import Category, Product, ProductReview, ProductVariant
+from .models import Category, Product, ProductImage, ProductReview, ProductVariant
 
 
 class ProductReviewTests(TestCase):
@@ -111,3 +111,33 @@ class ProductReviewTests(TestCase):
         product_url = reverse("product_detail", kwargs={"slug": product.slug})
         self.assertContains(response, f'href="{product_url}">Choose Options</a>')
         self.assertNotContains(response, 'type="submit" disabled>Choose Options')
+
+    def test_shop_pagination_preserves_filters_and_exposes_public_share_urls(self):
+        for index in range(12):
+            Product.objects.create(
+                name=f"Test Panel {index + 2}",
+                slug=f"test-panel-{index + 2}",
+                sku=f"TEST-PANEL-{index + 2}",
+                category=self.category,
+                price="299.00",
+            )
+
+        response = self.client.get(reverse("shop"), {"q": "Test", "sort": "name", "page": 2})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Page 2 of 2")
+        self.assertContains(response, 'data-product-url="https://www.phoenixinteriorhub.com/product/')
+        page_two = next(item for item in response.context["pagination_items"] if item.get("number") == 2)
+        self.assertIn("page=2", page_two["url"])
+        self.assertIn("q=Test", page_two["url"])
+        self.assertIn("sort=name", page_two["url"])
+        self.assertNotIn("127.0.0.1", page_two["url"])
+
+    def test_product_detail_share_url_is_public_and_uses_parent_product(self):
+        ProductImage.objects.create(
+            product=self.product,
+            image="products/test.png",
+            is_primary=True,
+        )
+        response = self.client.get(self.product_url)
+        self.assertContains(response, 'data-product-url="https://www.phoenixinteriorhub.com/product/test-panel/"')
+        self.assertContains(response, 'aria-label="Share Test Panel"')

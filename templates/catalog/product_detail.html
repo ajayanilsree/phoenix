@@ -7,6 +7,7 @@
       {% if product.primary_image and product.primary_image.image %}
         <div class="main-image" data-gallery-main tabindex="0" role="button" aria-label="Open larger product image">
           <img src="{{ product.primary_image.image.url }}" alt="{{ product.primary_image.alt_text|default:product.name }}" data-gallery-image>
+          <button class="product-share-btn product-share-btn-detail" type="button" data-share-product data-product-name="{{ product.name|escape }}" data-product-url="{{ public_site_url }}{{ product.get_absolute_url }}" aria-label="Share {{ product.name }}" title="Share product"><svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M18 8a3 3 0 1 0-2.83-4A3 3 0 0 0 15 5.17l-6.1 3.39a3 3 0 1 0 0 6.88l6.1 3.39A3 3 0 0 0 16 17.83l-6.1-3.39A3 3 0 0 0 10 12c0-.86-.36-1.63-.93-2.18l6.1-3.39C15.72 7.4 16.8 8 18 8Z"/></svg></button>
           {% if product.images.count > 1 %}<button class="gallery-arrow gallery-arrow-prev" type="button" data-gallery-prev aria-label="Previous product image">&#8592;</button><button class="gallery-arrow gallery-arrow-next" type="button" data-gallery-next aria-label="Next product image">&#8594;</button>{% endif %}
         </div>
         <div class="thumb-row" data-gallery-thumbs aria-label="Product images">

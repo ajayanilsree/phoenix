@@ -15,8 +15,8 @@
   <link rel="manifest" href="{% url 'manifest_webmanifest' %}">
   <link rel="apple-touch-icon" href="{{ STATIC_PREFIX }}pwa/icon-192.png">
   <link rel="preload" as="image" href="{% static 'img/phoenix-logo-brown.png' %}">
-  <link rel="stylesheet" href="{% static 'css/styles.css' %}?v=20260908-2">
-  <script defer src="{% static 'js/site.js' %}?v=20260902-1"></script>
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}?v=20260920-1">
+  <script defer src="{% static 'js/site.js' %}?v=20260920-1"></script>
 </head>
 <body class="preloader-active">
   <div id="phoenix-preloader" aria-hidden="true">
@@ -39,5 +39,7 @@
   {% include "partials/footer.html" %}
   {% include "partials/whatsapp.html" %}
   {% include "partials/chatbot.html" %}
+  <div class="share-popover" data-share-popover hidden role="dialog" aria-label="Share product"><p data-share-popover-title></p><div class="share-popover-actions"><button type="button" data-share-copy>Copy Link</button><a data-share-whatsapp target="_blank" rel="noopener noreferrer">WhatsApp</a><a data-share-facebook target="_blank" rel="noopener noreferrer">Facebook</a><a data-share-email>Email</a></div></div>
+  <div class="share-toast" data-share-toast role="status" aria-live="polite" hidden>Product link copied.</div>
 </body>
 </html>

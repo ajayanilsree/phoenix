@@ -568,3 +568,101 @@ document.querySelectorAll("[data-chatbot]").forEach((chatbot) => {
     }
   });
 });
+
+const sharePopover = document.querySelector("[data-share-popover]");
+const shareToast = document.querySelector("[data-share-toast]");
+
+if (sharePopover) {
+  const popoverTitle = sharePopover.querySelector("[data-share-popover-title]");
+  const copyButton = sharePopover.querySelector("[data-share-copy]");
+  const whatsappLink = sharePopover.querySelector("[data-share-whatsapp]");
+  const facebookLink = sharePopover.querySelector("[data-share-facebook]");
+  const emailLink = sharePopover.querySelector("[data-share-email]");
+  let activeShare = null;
+  let toastTimer;
+
+  const closeSharePopover = () => {
+    sharePopover.hidden = true;
+    activeShare?.setAttribute("aria-expanded", "false");
+    activeShare = null;
+  };
+
+  const showToast = (message) => {
+    shareToast.textContent = message;
+    shareToast.hidden = false;
+    window.clearTimeout(toastTimer);
+    toastTimer = window.setTimeout(() => {
+      shareToast.hidden = true;
+    }, 2400);
+  };
+
+  const positionPopover = (button) => {
+    const rect = button.getBoundingClientRect();
+    const width = Math.min(280, window.innerWidth - 24);
+    const left = Math.max(12, Math.min(rect.right - width, window.innerWidth - width - 12));
+    const top = rect.bottom + 10 + 180 <= window.innerHeight ? rect.bottom + 10 : rect.top - 190;
+    sharePopover.style.width = `${width}px`;
+    sharePopover.style.left = `${left}px`;
+    sharePopover.style.top = `${Math.max(12, top)}px`;
+  };
+
+  const copyLink = async (url) => {
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch (error) {
+      const fallback = document.createElement("textarea");
+      fallback.value = url;
+      fallback.setAttribute("readonly", "");
+      fallback.style.position = "fixed";
+      fallback.style.opacity = "0";
+      document.body.appendChild(fallback);
+      fallback.select();
+      document.execCommand("copy");
+      fallback.remove();
+    }
+    closeSharePopover();
+    showToast("Product link copied.");
+  };
+
+  document.querySelectorAll("[data-share-product]").forEach((button) => {
+    button.addEventListener("click", async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const name = button.dataset.productName || "Phoenix Interior Hub product";
+      const url = button.dataset.productUrl;
+      if (!url) return;
+      const shareData = { title: name, text: `Check out ${name} at Phoenix Interior Hub`, url };
+      if (navigator.share) {
+        try {
+          await navigator.share(shareData);
+          return;
+        } catch (error) {
+          if (error.name === "AbortError") return;
+        }
+      }
+      activeShare = button;
+      button.setAttribute("aria-expanded", "true");
+      popoverTitle.textContent = `Share ${name}`;
+      copyButton.onclick = () => copyLink(url);
+      whatsappLink.href = `https://wa.me/?text=${encodeURIComponent(`${name} - ${url}`)}`;
+      facebookLink.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+      emailLink.href = `mailto:?subject=${encodeURIComponent(`Phoenix Interior Hub – ${name}`)}&body=${encodeURIComponent(`Check out this product:\n${url}`)}`;
+      sharePopover.hidden = false;
+      positionPopover(button);
+    });
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!sharePopover.hidden && !sharePopover.contains(event.target) && !event.target.closest("[data-share-product]")) {
+      closeSharePopover();
+    }
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !sharePopover.hidden) {
+      closeSharePopover();
+    }
+  });
+  window.addEventListener("resize", () => {
+    if (!sharePopover.hidden && activeShare) positionPopover(activeShare);
+  });
+}
