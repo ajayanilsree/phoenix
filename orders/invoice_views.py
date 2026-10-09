@@ -21,7 +21,7 @@ def _invoices_for(user):
 
 
 def _allowed(user, role):
-    return user.is_superuser or user_role(user) == role
+    return user_role(user) == role
 
 
 def _private(response):

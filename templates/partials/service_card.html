@@ -1,0 +1,14 @@
+<article class="product-card service-card">
+  <div class="product-image product-card-image-wrapper">
+    <a class="product-card-image-link" href="{{ service.get_absolute_url }}" aria-label="View {{ service.title }}">
+      {% with image=service.images.first %}{% if image %}<img class="product-card-image" src="{{ image.image.url }}" alt="{{ service.title }}" loading="lazy">{% else %}<span class="product-placeholder">{% if service.subcategory %}{{ service.subcategory.name }}{% else %}{{ service.category.name }}{% endif %}</span>{% endif %}{% endwith %}
+    </a>
+  </div>
+  <div class="product-card-body">
+    <p class="product-label">{% if service.subcategory %}{{ service.subcategory.name }}{% else %}{{ service.category.name }}{% endif %}</p>
+    <h3><a href="{{ service.get_absolute_url }}">{{ service.title }}</a></h3>
+    <p class="service-card-description">{{ service.description|striptags|truncatewords:18 }}</p>
+    <p class="service-card-fee">Consultation Fee: <strong>₹{{ service.consultation_fee|floatformat:2 }}</strong></p>
+    <a class="btn btn-primary service-card-action" href="{{ service.get_absolute_url }}">View Details</a>
+  </div>
+</article>

@@ -1,0 +1,28 @@
+{% extends "base/dashboard.html" %}
+{% block title %}Services | Phoenix Interior Hub{% endblock %}
+{% block heading %}Services{% endblock %}
+{% block sidebar %}{% include sidebar_template %}{% endblock %}
+{% block content %}
+<section class="panel service-list-panel">
+  <div class="page-panel-head"><div><h2>Services</h2><p class="muted">Manage the Phoenix Interior Hub services catalogue.</p></div><a class="btn btn-primary" href="{% if is_admin %}{% url 'admin_service_list_add' %}{% else %}{% url 'employee_service_list_add' %}{% endif %}">+ Add Service</a></div>
+  <form class="filter-form service-filter-form" method="get">
+    <input name="q" value="{{ query }}" placeholder="Search services">
+    <select name="category" data-service-category><option value="">All categories</option>{% for category in categories %}<option value="{{ category.id }}" {% if selected_category == category.id|stringformat:'s' %}selected{% endif %}>{{ category.name }}</option>{% endfor %}</select>
+    <select name="subcategory" data-service-subcategory><option value="">All subcategories</option></select>
+    <select name="active"><option value="">Any status</option><option value="1" {% if active == '1' %}selected{% endif %}>Active</option><option value="0" {% if active == '0' %}selected{% endif %}>Inactive</option></select>
+    <button class="btn btn-primary" type="submit">Filter</button>
+  </form>
+  <script type="application/json" id="service-subcategory-options">{{ subcategory_options_json|safe }}</script>
+  <div class="table-wrap"><table class="service-list-table"><thead><tr><th>Image</th><th>Service</th><th>Category</th><th>Subcategory</th><th>Fees</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+    {% for service in page_obj %}<tr>
+      <td class="service-table-image">{% with image=service.images.first %}{% if image %}<img src="{{ image.image.url }}" alt="{{ service.title }}">{% else %}<span class="muted">No image</span>{% endif %}{% endwith %}</td>
+      <td><strong>{{ service.title }}</strong><small class="muted">{{ service.slug }}</small></td><td>{{ service.category.name }}</td><td>{{ service.subcategory.name|default:'-' }}</td><td>₹{{ service.consultation_fee|floatformat:2 }}</td><td><span class="badge">{{ service.is_active|yesno:'Active,Inactive' }}</span></td>
+      <td class="action-cell"><a class="btn btn-ghost compact-btn" href="{{ service.get_absolute_url }}">View</a><a class="btn btn-ghost compact-btn" href="{% if is_admin %}{% url 'admin_service_list_edit' service.id %}{% else %}{% url 'employee_service_list_edit' service.id %}{% endif %}">Edit</a><form method="post" action="{% if is_admin %}{% url 'admin_service_list_toggle' service.id %}{% else %}{% url 'employee_service_list_toggle' service.id %}{% endif %}">{% csrf_token %}<button class="btn btn-ghost compact-btn" type="submit">{{ service.is_active|yesno:'Deactivate,Activate' }}</button></form><form method="post" action="{% if is_admin %}{% url 'admin_service_list_delete' service.id %}{% else %}{% url 'employee_service_list_delete' service.id %}{% endif %}" onsubmit="return confirm('Delete this service?');">{% csrf_token %}<button class="btn btn-danger compact-btn" type="submit">Delete</button></form></td>
+    </tr>{% empty %}<tr><td colspan="7">No services found.</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% include "dashboard/admin/pagination.html" %}
+</section>
+<script>
+(() => { const data = JSON.parse(document.getElementById('service-subcategory-options').textContent || '{}'); const category = document.querySelector('[data-service-category]'); const subcategory = document.querySelector('[data-service-subcategory]'); const selected = '{{ selected_subcategory|escapejs }}'; function update() { const options = data[category.value] || []; subcategory.innerHTML = '<option value="">All subcategories</option>'; options.forEach(item => { const option = new Option(item.name, item.id); if (String(item.id) === selected) option.selected = true; subcategory.add(option); }); } category.addEventListener('change', update); update(); })();
+</script>
+{% endblock %}

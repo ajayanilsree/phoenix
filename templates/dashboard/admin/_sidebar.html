@@ -1,7 +1,10 @@
 <a class="{% if request.resolver_match.url_name == 'admin_dashboard' %}is-active{% endif %}" href="{% url 'admin_dashboard' %}">Dashboard</a>
 <a class="{% if request.resolver_match.url_name == 'admin_orders' %}is-active{% endif %}" href="{% url 'admin_orders' %}">Orders</a>
+<a class="{% if request.resolver_match.url_name == 'admin_service_orders' or request.resolver_match.url_name == 'admin_service_order_detail' %}is-active{% endif %}" href="{% url 'admin_service_orders' %}">Service Orders</a>
 <a class="{% if request.resolver_match.url_name == 'admin_invoices' %}is-active{% endif %}" href="{% url 'admin_invoices' %}">Invoices</a>
 <a class="{% if request.resolver_match.url_name == 'admin_products' %}is-active{% endif %}" href="{% url 'admin_products' %}">Products</a>
+<a class="{% if request.resolver_match.url_name == 'admin_services' or request.resolver_match.url_name == 'admin_service_category_add' or request.resolver_match.url_name == 'admin_service_category_edit' or request.resolver_match.url_name == 'admin_service_subcategory_add' or request.resolver_match.url_name == 'admin_service_subcategory_edit' %}is-active{% endif %}" href="{% url 'admin_services' %}">Services Category</a>
+<a class="{% if request.resolver_match.url_name == 'admin_services_list' or request.resolver_match.url_name == 'admin_service_list_add' or request.resolver_match.url_name == 'admin_service_list_edit' %}is-active{% endif %}" href="{% url 'admin_services_list' %}">Services</a>
 <a class="{% if request.resolver_match.url_name == 'admin_reviews' %}is-active{% endif %}" href="{% url 'admin_reviews' %}">Reviews</a>
 <a class="{% if request.resolver_match.url_name == 'admin_categories' %}is-active{% endif %}" href="{% url 'admin_categories' %}">Categories</a>
 <a class="{% if request.resolver_match.url_name == 'admin_inventory' %}is-active{% endif %}" href="{% url 'admin_inventory' %}">Inventory</a>

@@ -66,7 +66,7 @@ def product_queryset():
 
 def shop(request, main_slug=None, sub_slug=None):
     products = product_queryset()
-    categories = Category.objects.filter(is_active=True)
+    categories = Category.objects.filter(is_active=True).exclude(slug="modular-furniture").exclude(parent__slug="modular-furniture")
     query = request.GET.get("q", "").strip()
     catalogue_query = CATALOG_LABELS.get(sub_slug or main_slug, "")
     category = None

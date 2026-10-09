@@ -97,8 +97,8 @@ class ProductManageForm(forms.ModelForm):
             self.fields[field_name].required = True
         for field_name in ("size", "thickness", "colour", "finish", "features", "applications"):
             self.fields[field_name].required = False
-        self.fields["category"].queryset = Category.objects.filter(is_active=True, parent__isnull=True).order_by("sort_order", "name")
-        self.fields["subcategory"].queryset = Category.objects.filter(is_active=True, parent__isnull=False).select_related("parent").order_by("parent__sort_order", "sort_order", "name")
+        self.fields["category"].queryset = Category.objects.filter(is_active=True, parent__isnull=True).exclude(slug="modular-furniture").order_by("sort_order", "name")
+        self.fields["subcategory"].queryset = Category.objects.filter(is_active=True, parent__isnull=False).exclude(parent__slug="modular-furniture").select_related("parent").order_by("parent__sort_order", "sort_order", "name")
         self.fields["subcategory"].required = True
         if self.instance and self.instance.pk:
             if self.instance.variant_type == Product.VARIANT_NONE and self.instance.has_variants:

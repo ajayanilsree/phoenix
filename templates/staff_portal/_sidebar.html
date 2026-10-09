@@ -1,7 +1,10 @@
 <a href="{% url 'employee_dashboard' %}">Dashboard</a>
 <a href="{% url 'employee_orders' %}">Orders</a>
+<a class="{% if request.resolver_match.url_name == 'employee_service_orders' or request.resolver_match.url_name == 'employee_service_order_detail' %}is-active{% endif %}" href="{% url 'employee_service_orders' %}">Service Orders</a>
 <a class="{% if request.resolver_match.url_name == 'employee_invoices' or request.resolver_match.url_name == 'employee_invoice_detail' or request.resolver_match.url_name == 'employee_invoice_pdf' %}is-active{% endif %}" href="{% url 'employee_invoices' %}">Invoices</a>
 <a href="{% url 'employee_products' %}">Products</a>
+<a class="{% if request.resolver_match.url_name == 'employee_services' or request.resolver_match.url_name == 'employee_service_category_add' or request.resolver_match.url_name == 'employee_service_category_edit' or request.resolver_match.url_name == 'employee_service_subcategory_add' or request.resolver_match.url_name == 'employee_service_subcategory_edit' %}is-active{% endif %}" href="{% url 'employee_services' %}">Services Category</a>
+<a class="{% if request.resolver_match.url_name == 'employee_services_list' or request.resolver_match.url_name == 'employee_service_list_add' or request.resolver_match.url_name == 'employee_service_list_edit' %}is-active{% endif %}" href="{% url 'employee_services_list' %}">Services</a>
 <a href="{% url 'employee_inventory' %}">Inventory</a>
 <a href="{% url 'employee_customers' %}">Customers</a>
 <a href="{% url 'employee_profile' %}">Profile</a>

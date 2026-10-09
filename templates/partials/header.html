@@ -64,6 +64,7 @@
           </div>
         </div>
       </div>
+      <div class="shop-catalog" data-shop-catalog><a class="shop-trigger {% if '/services/' in request.path %}is-active{% endif %}" href="{% url 'services_home' %}" aria-haspopup="true" aria-expanded="false" data-shop-trigger>Services</a><div class="catalog-dropdown" data-catalog-menu><div class="catalog-main-list" data-catalog-main-list>{% for category in service_categories %}<a class="catalog-main-item" href="{{ category.get_absolute_url }}" data-catalog-panel="service-{{ category.id }}" data-has-panel="{% if category.nav_children %}true{% else %}false{% endif %}"><span class="catalog-label">{{ category.name }}</span>{% if category.nav_children %}<span aria-hidden="true">&gt;</span>{% endif %}</a>{% empty %}<span class="catalog-empty">No services available.</span>{% endfor %}</div><div class="catalog-panel-list" data-catalog-panel-list>{% for category in service_categories %}{% if category.nav_children %}<div class="catalog-panel" data-catalog-panel-content="service-{{ category.id }}"><button class="catalog-back" type="button" data-catalog-back>&lt; Services</button><a class="catalog-panel-title" href="{{ category.get_absolute_url }}">{{ category.name }}</a>{% for child in category.nav_children %}<a href="{{ child.get_absolute_url }}">{{ child.name }}</a>{% endfor %}</div>{% endif %}{% endfor %}</div></div></div>
       <a class="{% if request.path == '/about/' %}is-active{% endif %}" href="{% url 'about' %}">About Us</a>
       <a href="#contact">Contact Us</a>
     </div>

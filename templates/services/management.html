@@ -1,0 +1,18 @@
+{% extends "base/dashboard.html" %}
+{% block title %}Services Category | Phoenix Interior Hub{% endblock %}
+{% block heading %}Services Category{% endblock %}
+{% block sidebar %}{% include sidebar_template %}{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="page-panel-head"><div><h2>Services Category</h2><p class="muted">Manage service categories and subcategories.</p></div><a class="btn btn-primary" href="{% if is_admin %}{% url 'admin_service_category_add' %}{% else %}{% url 'employee_service_category_add' %}{% endif %}">+ Add Category</a></div>
+  <form class="filter-form" method="get"><input name="q" value="{{ query }}" placeholder="Category or subcategory"><button class="btn btn-primary" type="submit">Search</button></form>
+  <div class="category-tree">
+    {% for category in service_category_tree %}
+      <article>
+        <header><div><strong>{{ category.name }}</strong><span>{{ category.subcategory_count }} subcategor{{ category.subcategory_count|pluralize:'y,ies' }}</span></div><div class="category-actions"><a class="btn btn-ghost compact-btn" href="{% if is_admin %}{% url 'admin_service_subcategory_add' category.id %}{% else %}{% url 'employee_service_subcategory_add' category.id %}{% endif %}">+ Add Subcategory</a><a class="btn btn-ghost compact-btn" href="{% if is_admin %}{% url 'admin_service_category_edit' category.id %}{% else %}{% url 'employee_service_category_edit' category.id %}{% endif %}">Edit Category</a><form method="post" action="{% if is_admin %}{% url 'admin_service_category_delete' category.id %}{% else %}{% url 'employee_service_category_delete' category.id %}{% endif %}" style="display:inline" onsubmit="return confirm('Are you sure you want to delete the category \'{{ category.name|escapejs }}\'? If it has subcategories, services, or historical bookings, deletion will be blocked.');">{% csrf_token %}<button class="btn btn-danger compact-btn" type="submit">Delete Category</button></form></div></header>
+        <ul>{% for child in category.children.all %}{% if child.is_active %}<li><span>{{ child.name }}</span><div class="category-actions"><a class="btn btn-ghost compact-btn" href="{% if is_admin %}{% url 'admin_service_subcategory_edit' category.id child.id %}{% else %}{% url 'employee_service_subcategory_edit' category.id child.id %}{% endif %}">Edit Subcategory</a><form method="post" action="{% if is_admin %}{% url 'admin_service_category_delete' child.id %}{% else %}{% url 'employee_service_category_delete' child.id %}{% endif %}" style="display:inline" onsubmit="return confirm('Are you sure you want to delete the subcategory \'{{ child.name|escapejs }}\'? Any dependent services or historical bookings will prevent deletion.');">{% csrf_token %}<button class="btn btn-danger compact-btn" type="submit">Delete Subcategory</button></form></div></li>{% endif %}{% empty %}<li><span class="muted">No subcategories yet.</span></li>{% endfor %}</ul>
+      </article>
+    {% empty %}<div class="empty-state">No service categories found.</div>{% endfor %}
+  </div>
+</section>
+{% endblock %}

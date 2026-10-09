@@ -146,6 +146,10 @@ def order_detail(request, order_number):
 def products(request):
     if not request.user.is_authenticated:
         return redirect("employee_login")
+    # Keep an admin who reaches the legacy staff URL in the admin catalogue.
+    # Staff users still use this view; other roles remain forbidden below.
+    if user_role(request.user) == "admin":
+        return redirect("admin_products")
     if user_role(request.user) != "staff":
         raise PermissionDenied
     qs = Product.objects.select_related("category").prefetch_related("images", "variants").order_by("name")

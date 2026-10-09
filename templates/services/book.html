@@ -1,0 +1,19 @@
+{% extends "base/storefront.html" %}
+{% block title %}Book {{ service.title }} | Phoenix Interior Hub{% endblock %}
+{% block content %}
+{% if razorpay_options %}
+<section class="section"><div class="container payment-launch-panel"><p class="eyebrow">Consultation booking</p><h1>Opening secure payment...</h1><p>{{ booking.service_title_snapshot }} · ₹{{ booking.consultation_fee_snapshot|floatformat:2 }}</p><p class="muted" data-payment-status>Opening Razorpay Checkout...</p><button class="btn btn-primary" id="pay-button" type="button" disabled>Opening secure payment...</button></div></section>
+{{ razorpay_options|json_script:"service-razorpay-options" }}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+(() => {
+  const options = JSON.parse(document.getElementById('service-razorpay-options').textContent || '{}'); const button = document.getElementById('pay-button'); const status = document.querySelector('[data-payment-status]'); let checkoutOpen = false;
+  const openCheckout = () => { if (checkoutOpen || !window.Razorpay) return; checkoutOpen = true; const checkout = new Razorpay(options); checkout.on('payment.failed', response => { checkoutOpen = false; button.disabled = false; button.textContent = 'Try Payment Again'; status.textContent = response.error?.description || 'Payment could not be completed. You can try again.'; }); checkout.open(); };
+  options.handler = response => fetch('{% url "verify_booking_payment" booking.booking_reference %}', {method:'POST', credentials:'same-origin', headers:{'X-CSRFToken':'{{ csrf_token }}','Content-Type':'application/x-www-form-urlencoded','X-Requested-With':'XMLHttpRequest'}, body:new URLSearchParams({razorpay_payment_id:response.razorpay_payment_id,razorpay_order_id:response.razorpay_order_id,razorpay_signature:response.razorpay_signature})}).then(result => result.json()).then(result => { if (result.success) window.location.href = result.redirect_url; else { checkoutOpen = false; button.disabled = false; button.textContent = 'Try Payment Again'; status.textContent = result.message || 'Payment verification failed. Please try again.'; } }).catch(() => { checkoutOpen = false; button.disabled = false; button.textContent = 'Try Payment Again'; status.textContent = 'Payment verification is unavailable right now. Please try again.'; });
+  button.addEventListener('click', openCheckout); button.disabled = false; openCheckout();
+})();
+</script>
+{% else %}
+<section class="section"><div class="container"><h1>Book Your Consultation</h1><p>{{ service.title }} · ₹{{ service.consultation_fee|floatformat:2 }}</p>{% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}<form class="management-form" method="post">{% csrf_token %}<label>Full name<input name="customer_name" required value="{{ initial_name }}"></label><label>Email<input type="email" name="customer_email" required value="{{ initial_email }}"></label><label>Mobile number<input name="customer_mobile" required></label><label>Requirements<textarea name="requirements" rows="5"></textarea></label><button class="btn btn-primary" type="submit">Proceed to Payment · ₹{{ service.consultation_fee|floatformat:2 }}</button></form></div></section>
+{% endif %}
+{% endblock %}

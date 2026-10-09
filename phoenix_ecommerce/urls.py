@@ -9,6 +9,7 @@ urlpatterns = [
     path("api/chatbot/", include("chatbot.urls")),
     path("", include("core.urls")),
     path("", include("catalog.urls")),
+    path("", include("services.urls")),
     path("", include("cart.urls")),
     path("", include("orders.urls")),
     path("account/", include("customers.urls")),

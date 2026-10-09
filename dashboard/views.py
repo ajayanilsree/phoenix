@@ -7,12 +7,14 @@ from django.contrib.auth.models import User
 from django.core.paginator import Paginator
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import IntegrityError, transaction
+from django.db.models.deletion import ProtectedError
 from django.db.models import Count, Q, Sum
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_POST
 
 from accounts.models import AgentProfile, StaffProfile, UserProfile
 from accounts.decorators import user_role
@@ -523,7 +525,7 @@ def categories(request):
     blocked = require_admin(request)
     if blocked:
         return blocked
-    category_qs = Category.objects.filter(is_active=True, parent__isnull=True).prefetch_related("children").annotate(product_count=Count("products")).order_by("sort_order", "name")
+    category_qs = Category.objects.filter(is_active=True, parent__isnull=True).exclude(slug="modular-furniture").prefetch_related("children").annotate(product_count=Count("products")).order_by("sort_order", "name")
     query = request.GET.get("q", "").strip()
     if query:
         category_qs = category_qs.filter(Q(name__icontains=query) | Q(slug__icontains=query) | Q(children__name__icontains=query)).distinct()
@@ -557,6 +559,51 @@ def subcategory_form(request, category_id, subcategory_id=None):
         messages.success(request, "Subcategory updated successfully." if subcategory else "Subcategory added successfully.")
         return redirect("admin_categories")
     return render(request, "dashboard/admin/category_form.html", {"form": form, "category": subcategory, "parent_category": parent, "is_subcategory": True})
+
+
+@require_POST
+def category_delete(request, category_id):
+    blocked = require_admin(request)
+    if blocked:
+        return blocked
+    category = get_object_or_404(Category, pk=category_id, parent__isnull=True)
+    product_count = category.products.count() + category.subcategory_products.count()
+    child_count = category.children.count()
+    if product_count or child_count:
+        dependencies = []
+        if product_count:
+            dependencies.append(f"{product_count} product{'s' if product_count != 1 else ''}")
+        if child_count:
+            dependencies.append(f"{child_count} subcategor{'ies' if child_count != 1 else 'y'}")
+        messages.error(request, f"Cannot delete {category.name} because it contains {' and '.join(dependencies)}. Remove or reassign the dependencies first.")
+        return redirect("admin_categories")
+    try:
+        with transaction.atomic():
+            category.delete()
+        messages.success(request, f"{category.name} was deleted successfully.")
+    except ProtectedError:
+        messages.error(request, f"Cannot delete {category.name} because existing records depend on it.")
+    return redirect("admin_categories")
+
+
+@require_POST
+def subcategory_delete(request, category_id, subcategory_id):
+    blocked = require_admin(request)
+    if blocked:
+        return blocked
+    parent = get_object_or_404(Category, pk=category_id, parent__isnull=True)
+    category = get_object_or_404(Category, pk=subcategory_id, parent=parent)
+    product_count = category.products.count() + category.subcategory_products.count()
+    if product_count:
+        messages.error(request, f"Cannot delete {category.name} because products are assigned to this subcategory.")
+        return redirect("admin_categories")
+    try:
+        with transaction.atomic():
+            category.delete()
+        messages.success(request, f"{category.name} was deleted successfully.")
+    except ProtectedError:
+        messages.error(request, f"Cannot delete {category.name} because existing records depend on it.")
+    return redirect("admin_categories")
 
 
 @never_cache

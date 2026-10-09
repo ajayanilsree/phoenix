@@ -1,0 +1,18 @@
+{% extends "base/storefront.html" %}
+{% load static %}
+{% block title %}{{ service.title }} | Phoenix Interior Hub{% endblock %}
+{% block content %}
+<section class="section product-detail service-detail">
+  <div class="container product-detail-grid">
+    <div class="gallery" data-service-gallery>
+      {% with first_image=service.images.first %}{% if first_image %}
+      <div class="main-image" data-service-gallery-main tabindex="0" role="button" aria-label="Open larger service image"><img src="{{ first_image.image.url }}" alt="{{ first_image.alt_text|default:service.title }}" data-service-gallery-image><button class="product-share-btn product-share-btn-detail" type="button" data-share-product data-product-name="{{ service.title|escape }}" data-product-url="{{ public_site_url }}{{ service.get_absolute_url }}" aria-label="Share {{ service.title }}" title="Share service"><img class="product-share-icon" src="{% static 'images/icons/share-icon-v2.png' %}" alt=""></button>{% if service.images.all|length > 1 %}<button class="gallery-arrow gallery-arrow-prev" type="button" data-service-gallery-prev aria-label="Previous service image">&#8592;</button><button class="gallery-arrow gallery-arrow-next" type="button" data-service-gallery-next aria-label="Next service image">&#8594;</button>{% endif %}</div>
+      <div class="thumb-row service-thumb-row" data-service-gallery-thumbs aria-label="Service images">{% for image in service.images.all %}<button class="product-thumbnail{% if forloop.first %} active{% endif %}" type="button" data-service-gallery-thumb data-image-url="{{ image.image.url }}" data-image-alt="{{ image.alt_text|default:service.title }}" aria-label="View service image {{ forloop.counter }}" aria-pressed="{% if forloop.first %}true{% else %}false{% endif %}"><img src="{{ image.image.url }}" alt="" loading="lazy"></button>{% endfor %}</div>
+      {% else %}<div class="main-image service-image-placeholder"><span>{{ service.subcategory.name|default:service.category.name }}</span></div>{% endif %}{% endwith %}
+    </div>
+    <div class="purchase-panel service-purchase-panel"><p class="eyebrow">{% if service.subcategory %}{{ service.subcategory.name }}{% else %}{{ service.category.name }}{% endif %}</p><h1>{{ service.title }}</h1><div class="service-description service-detail-description">{{ service.description|safe }}</div><p class="service-detail-fee"><strong>Consultation Fee: ₹{{ service.consultation_fee|floatformat:2 }}</strong></p><a class="btn btn-primary wide" href="{% url 'book_service' service.slug %}">Book Your Consultation</a></div>
+  </div>
+</section>
+{% with first_image=service.images.first %}{% if first_image %}<div class="gallery-lightbox" data-service-lightbox hidden><div class="gallery-lightbox-backdrop" data-service-lightbox-close></div><div class="gallery-lightbox-content" role="dialog" aria-modal="true" aria-label="Service image viewer" tabindex="-1"><button class="gallery-lightbox-close" type="button" data-service-lightbox-close aria-label="Close image viewer">&times;</button><button class="gallery-arrow gallery-lightbox-prev" type="button" data-service-lightbox-prev aria-label="Previous service image">&#8592;</button><img class="lightbox-image" src="{{ first_image.image.url }}" alt="{{ service.title }}" data-service-lightbox-image><button class="gallery-arrow gallery-lightbox-next" type="button" data-service-lightbox-next aria-label="Next service image">&#8594;</button><span class="gallery-counter" data-service-lightbox-counter></span></div></div>{% endif %}{% endwith %}
+<script defer src="{% static 'js/service-gallery.js' %}?v=20261009-2"></script><script defer src="{% static 'js/service-previews.js' %}?v=20261009-3"></script>
+{% endblock %}

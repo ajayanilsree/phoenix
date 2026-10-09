@@ -1,6 +1,7 @@
 from .models import Category
 from django.db.models import Prefetch
 from django.conf import settings
+from services.models import ServiceCategory
 
 
 def public_site_url(request):
@@ -14,7 +15,12 @@ def public_site_url(request):
 def category_navigation(request):
     children = Category.objects.filter(is_active=True).order_by("sort_order", "name")
     return {
-        "nav_categories": Category.objects.filter(is_active=True, parent__isnull=True)
+        "nav_categories": Category.objects.filter(is_active=True, parent__isnull=True).exclude(slug="modular-furniture")
         .prefetch_related(Prefetch("children", queryset=children, to_attr="nav_children"))
         .order_by("sort_order", "name"),
     }
+
+
+def service_navigation(request):
+    children = ServiceCategory.objects.filter(is_active=True).order_by("sort_order", "name")
+    return {"service_categories": ServiceCategory.objects.filter(is_active=True, parent__isnull=True).prefetch_related(Prefetch("children", queryset=children, to_attr="nav_children"))}
