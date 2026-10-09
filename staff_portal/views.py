@@ -12,6 +12,7 @@ from django.views.decorators.cache import never_cache
 from accounts.decorators import user_role
 from accounts.forms import EmployeeLoginForm
 from catalog.models import Category, Product, ProductVariant
+from catalog.search import product_search_query
 from dashboard.forms import InventoryUpdateForm, OrderStatusForm, ProductVariantInventoryUpdateForm
 from inventory.models import InventoryRecord, StockMovement
 from orders.models import Order
@@ -154,7 +155,7 @@ def products(request):
     featured = request.GET.get("featured", "").strip()
     trending = request.GET.get("trending", "").strip()
     if query:
-        qs = qs.filter(Q(name__icontains=query) | Q(sku__icontains=query))
+        qs = qs.filter(product_search_query(query)).distinct()
     if category:
         qs = qs.filter(category__slug=category)
     if active in {"1", "0"}:

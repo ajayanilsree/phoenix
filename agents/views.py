@@ -10,6 +10,7 @@ from accounts.decorators import user_role
 from accounts.models import AgentWallet
 from accounts.forms import AgentLoginForm
 from catalog.models import Product
+from catalog.search import product_search_query
 from orders.forms import AddressForm, BillingAddressForm
 from orders.models import Address, Order
 from orders.rewards import eligible_agent_orders, reconcile_agent_rewards
@@ -79,7 +80,7 @@ def shop(request):
     qs = Product.objects.filter(is_active=True).select_related("category").prefetch_related("images").order_by("name")
     query = request.GET.get("q", "").strip()
     if query:
-        qs = qs.filter(Q(name__icontains=query) | Q(sku__icontains=query) | Q(category__name__icontains=query))
+        qs = qs.filter(product_search_query(query, include_category=True)).distinct()
     return render(request, "agents/shop.html", {"page_obj": paginate(request, qs, 12), "query": query})
 
 

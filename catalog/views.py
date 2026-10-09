@@ -10,6 +10,7 @@ import json
 from accounts.decorators import user_role
 from .forms import ProductReviewForm
 from .models import Category, Product, ProductReview
+from .search import product_search_query
 
 
 CATALOG_LABELS = {
@@ -88,13 +89,7 @@ def shop(request, main_slug=None, sub_slug=None):
     sort = request.GET.get("sort", "recommended")
 
     if query:
-        products = products.filter(
-            Q(name__icontains=query)
-            | Q(sku__icontains=query)
-            | Q(short_description__icontains=query)
-            | Q(full_description__icontains=query)
-            | Q(category__name__icontains=query)
-        )
+        products = products.filter(product_search_query(query, include_descriptions=True, include_category=True)).distinct()
     if category_slug:
         products = products.filter(Q(category__slug=category_slug) | Q(subcategory__slug=category_slug))
     if availability == "in_stock":

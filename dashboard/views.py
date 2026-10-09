@@ -18,6 +18,7 @@ from accounts.models import AgentProfile, StaffProfile, UserProfile
 from accounts.decorators import user_role
 from accounts.forms import AdminLoginForm
 from catalog.models import Category, Product, ProductImage, ProductReview, validate_product_image_size
+from catalog.search import product_search_query
 from inventory.models import InventoryRecord, StockMovement
 from orders.invoices import InvoiceGenerationError, generate_invoice
 from orders.models import Order, OrderItem
@@ -194,7 +195,7 @@ def products(request):
     featured = request.GET.get("featured", "").strip()
     trending = request.GET.get("trending", "").strip()
     if query:
-        product_qs = product_qs.filter(Q(name__icontains=query) | Q(sku__icontains=query))
+        product_qs = product_qs.filter(product_search_query(query)).distinct()
     if category:
         product_qs = product_qs.filter(category__slug=category)
     if active in {"1", "0"}:

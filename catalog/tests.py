@@ -112,6 +112,24 @@ class ProductReviewTests(TestCase):
         self.assertContains(response, f'href="{product_url}">Choose Options</a>')
         self.assertNotContains(response, 'type="submit" disabled>Choose Options')
 
+    def test_shop_search_finds_parent_by_variant_sku_without_duplicates(self):
+        product = Product.objects.create(
+            name="SS-10",
+            slug="ss-10-search",
+            sku="PHX003",
+            category=self.category,
+            price="50.00",
+            has_variants=True,
+        )
+        ProductVariant.objects.create(product=product, name="Small", sku="PHX004", selling_price="50.00", stock=2)
+        ProductVariant.objects.create(product=product, name="Large", sku="PHX004-L", selling_price="60.00", stock=2)
+
+        response = self.client.get(reverse("shop"), {"q": "  phx004  "})
+
+        products = list(response.context["page_obj"].object_list)
+        self.assertEqual([item.pk for item in products], [product.pk])
+        self.assertContains(response, "SS-10")
+
     def test_shop_pagination_preserves_filters_and_exposes_public_share_urls(self):
         for index in range(12):
             Product.objects.create(
