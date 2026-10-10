@@ -20,8 +20,6 @@
     <aside class="summary-card">
       <h2>Order summary</h2>
       <p><span>Subtotal</span><strong id="cart-subtotal" data-cart-subtotal>₹{{ cart.subtotal|default:"0.00"|floatformat:2 }}</strong></p>
-      <p><span>Delivery</span><em>Requires rule</em></p>
-      <p><span>Tax</span><em>Requires rule</em></p>
       <hr>
       <p><span>Grand total</span><strong>Calculated at checkout</strong></p>
       <a class="btn btn-primary wide" href="{% url 'checkout' %}">Proceed to Checkout</a>

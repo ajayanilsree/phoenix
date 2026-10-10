@@ -1285,6 +1285,7 @@ th { color: var(--muted); font-size: .86rem; }
 .checkout-summary-column { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .place-order-button { width: 100%; min-height: 50px; border-radius: 6px; background: var(--navy); color: var(--white); font-weight: 700; }
 .place-order-button:hover { background: var(--blue); color: var(--white); }
+.place-order-button:disabled { opacity: .55; cursor: not-allowed; }
 @media (max-width: 1100px) {
   .checkout-summary-column { gap: 14px; }
 }

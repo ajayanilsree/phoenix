@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
+from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
 from django.urls import reverse
 
@@ -11,6 +11,10 @@ def validate_product_image_size(image):
     max_size = 5 * 1024 * 1024
     if image.size > max_size:
         raise ValidationError("Product images must be 5MB or smaller.")
+
+
+positive_shipping_measurement = MinValueValidator(Decimal("0.01"), "Enter a value greater than zero.")
+pickup_pincode_validator = RegexValidator(r"^\d{6}$", "Enter a valid 6-digit pickup PIN code.")
 
 
 class Category(models.Model):
@@ -75,6 +79,11 @@ class Product(models.Model):
     applications = models.TextField(blank=True)
     has_variants = models.BooleanField(default=False)
     variant_type = models.CharField(max_length=12, choices=VARIANT_TYPE_CHOICES, default=VARIANT_NONE)
+    pickup_pincode = models.CharField(max_length=6, blank=True, validators=[pickup_pincode_validator])
+    package_weight_kg = models.DecimalField(max_digits=10, decimal_places=3, blank=True, null=True, validators=[positive_shipping_measurement])
+    package_length_cm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, validators=[positive_shipping_measurement])
+    package_breadth_cm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, validators=[positive_shipping_measurement])
+    package_height_cm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, validators=[positive_shipping_measurement])
     installation_notes = models.TextField(blank=True)
     is_featured = models.BooleanField(default=False)
     featured_order = models.PositiveIntegerField(default=0)
@@ -106,6 +115,9 @@ class Product(models.Model):
             raise ValidationError({"promo_price": "Promo price must be less than or equal to selling price."})
         if self.subpromo_price is not None and self.promo_price is not None and self.subpromo_price > self.promo_price:
             raise ValidationError({"subpromo_price": "Sub promo price must be less than or equal to promo price."})
+        dimensions = [self.package_length_cm, self.package_breadth_cm, self.package_height_cm]
+        if any(value is not None for value in dimensions) and not all(value is not None for value in dimensions):
+            raise ValidationError("Enter all three package dimensions together.")
 
     @property
     def primary_image(self):
@@ -194,6 +206,11 @@ class ProductVariant(models.Model):
     original_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     selling_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     stock = models.IntegerField(default=0, validators=[MinValueValidator(0)])
+    pickup_pincode = models.CharField(max_length=6, blank=True, validators=[pickup_pincode_validator])
+    package_weight_kg = models.DecimalField(max_digits=10, decimal_places=3, blank=True, null=True, validators=[positive_shipping_measurement])
+    package_length_cm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, validators=[positive_shipping_measurement])
+    package_breadth_cm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, validators=[positive_shipping_measurement])
+    package_height_cm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, validators=[positive_shipping_measurement])
     low_stock_threshold = models.PositiveIntegerField(default=5)
     is_active = models.BooleanField(default=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -235,6 +252,9 @@ class ProductVariant(models.Model):
             raise ValidationError({"promo_price": "Promo price must be less than or equal to selling price."})
         if self.subpromo_price is not None and self.promo_price is not None and self.subpromo_price > self.promo_price:
             raise ValidationError({"subpromo_price": "Sub promo price must be less than or equal to promo price."})
+        dimensions = [self.package_length_cm, self.package_breadth_cm, self.package_height_cm]
+        if any(value is not None for value in dimensions) and not all(value is not None for value in dimensions):
+            raise ValidationError("Enter all three package dimensions together.")
 
 
 class ProductAttribute(models.Model):

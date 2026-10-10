@@ -20,6 +20,7 @@ from .models import Address, Order, OrderItem, PaymentRecord
 from .payment import get_razorpay_client
 from .rewards import sync_agent_reward
 from .invoices import next_sequence
+from .shipping import ShippingError, get_shipping_quote
 
 PROMO_SESSION_KEY = "agent_promo_code"
 SUBPROMO_SESSION_KEY = "agent_subpromo_code"
@@ -81,7 +82,7 @@ def resolve_agent_promo(code):
     return promo, ""
 
 
-def checkout_summary(cart, promo_code=None, subpromo_code=None, redeem_points=0, user=None):
+def checkout_summary(cart, promo_code=None, subpromo_code=None, redeem_points=0, user=None, delivery_pin=None):
     role = user_role(user) if user else UserProfile.CUSTOMER
     is_agent = role == UserProfile.AGENT
     promo = None
@@ -129,7 +130,17 @@ def checkout_summary(cart, promo_code=None, subpromo_code=None, redeem_points=0,
         error = error or f"You have only {available_points.quantize(MONEY)} redeemable points."
         requested_points = Decimal("0.00")
     wallet_discount = min(money(requested_points), discounted_subtotal)
-    grand_total = money(discounted_subtotal - wallet_discount)
+    delivery_charge = Decimal("0.00")
+    shipping_error = ""
+    estimated_delivery = ""
+    if delivery_pin:
+        try:
+            shipping = get_shipping_quote(cart, delivery_pin)
+            delivery_charge = money(shipping["amount"])
+            estimated_delivery = shipping["estimated_delivery"]
+        except ShippingError as exc:
+            shipping_error = str(exc)
+    grand_total = money(discounted_subtotal - wallet_discount + delivery_charge)
     return {
         "promo": promo,
         "promo_error": error,
@@ -144,7 +155,9 @@ def checkout_summary(cart, promo_code=None, subpromo_code=None, redeem_points=0,
         "available_points": available_points,
         "wallet_points_redeemed": requested_points,
         "wallet_discount_amount": wallet_discount,
-        "delivery_charge": Decimal("0.00"),
+        "delivery_charge": delivery_charge,
+        "shipping_error": shipping_error,
+        "estimated_delivery": estimated_delivery,
         "tax_total": Decimal("0.00"),
         "grand_total": grand_total,
     }
@@ -293,12 +306,12 @@ def checkout(request):
     delivery_address = get_saved_address(request.user, Address.DELIVERY)
     promo_form = AgentPromoForm()
     is_agent = user_role(request.user) == UserProfile.AGENT
-    summary = checkout_summary(cart, request.session.get(PROMO_SESSION_KEY), request.session.get(SUBPROMO_SESSION_KEY), request.session.get(REDEEM_POINTS_SESSION_KEY), request.user)
+    summary = checkout_summary(cart, request.session.get(PROMO_SESSION_KEY), request.session.get(SUBPROMO_SESSION_KEY), request.session.get(REDEEM_POINTS_SESSION_KEY), request.user, delivery_address.postal_code if delivery_address else None)
     if summary["promo_error"]:
         request.session.pop(PROMO_SESSION_KEY, None)
         request.session.pop(SUBPROMO_SESSION_KEY, None)
         request.session.pop(REDEEM_POINTS_SESSION_KEY, None)
-        summary = checkout_summary(cart, user=request.user)
+        summary = checkout_summary(cart, user=request.user, delivery_pin=delivery_address.postal_code if delivery_address else None)
 
     if request.method == "POST":
         action = request.POST.get("action", "place_order")
@@ -357,7 +370,10 @@ def checkout(request):
         form.fields["use_saved_delivery"].disabled = not bool(delivery_address)
         form.fields["use_saved_delivery"].initial = bool(delivery_address)
         if form.is_valid():
-            summary = checkout_summary(cart, request.session.get(PROMO_SESSION_KEY), request.session.get(SUBPROMO_SESSION_KEY), request.session.get(REDEEM_POINTS_SESSION_KEY), request.user)
+            summary = checkout_summary(cart, request.session.get(PROMO_SESSION_KEY), request.session.get(SUBPROMO_SESSION_KEY), request.session.get(REDEEM_POINTS_SESSION_KEY), request.user, form.cleaned_data.get("postal_code"))
+            if summary["shipping_error"]:
+                messages.error(request, summary["shipping_error"])
+                return redirect("checkout")
             if summary["promo_error"]:
                 request.session.pop(PROMO_SESSION_KEY, None)
                 request.session.pop(SUBPROMO_SESSION_KEY, None)
@@ -409,6 +425,19 @@ def checkout(request):
         "orders/checkout.html",
         {"form": form, "promo_form": promo_form, "cart": cart, "billing_address": billing_address, "delivery_address": delivery_address, "summary": summary},
     )
+
+
+@login_required
+@require_POST
+def shipping_quote(request):
+    cart = Cart.objects.filter(user=request.user).prefetch_related("items__product", "items__variant").first()
+    if not cart or not cart.items.exists():
+        return JsonResponse({"success": False, "message": "Your cart is empty."}, status=400)
+    try:
+        quote = get_shipping_quote(cart, request.POST.get("postal_code"))
+    except ShippingError as exc:
+        return JsonResponse({"success": False, "message": str(exc)}, status=422)
+    return JsonResponse({"success": True, "amount": str(quote["amount"]), "estimated_delivery": quote["estimated_delivery"]})
 
 
 @login_required

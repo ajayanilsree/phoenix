@@ -221,6 +221,11 @@ PUBLIC_SITE_URL = os.environ.get(
 RAZORPAY_KEY_ID = os.environ.get("RAZORPAY_KEY_ID", "").strip()
 RAZORPAY_KEY_SECRET = os.environ.get("RAZORPAY_KEY_SECRET", "").strip()
 
+DELHIVERY_API_TOKEN = os.environ.get("DELHIVERY_API_TOKEN", "").strip()
+DELHIVERY_SHIPPING_ENABLED = env_bool("DELHIVERY_SHIPPING_ENABLED", bool(DELHIVERY_API_TOKEN))
+DELHIVERY_SHIPPING_COST_URL = os.environ.get("DELHIVERY_SHIPPING_COST_URL", "https://track.delhivery.com/api/kinko/v1/invoice/charges/.json").strip()
+DELHIVERY_REQUEST_TIMEOUT = env_int("DELHIVERY_REQUEST_TIMEOUT", 8)
+
 INVOICE_COMPANY_NAME = os.environ.get("INVOICE_COMPANY_NAME", "PHOENIX INTERIOR HUB").strip()
 INVOICE_COMPANY_ADDRESS = os.environ.get("INVOICE_COMPANY_ADDRESS", "").strip()
 INVOICE_COMPANY_EMAIL = os.environ.get("INVOICE_COMPANY_EMAIL", "phoenixinteriorhub@gmail.com").strip()

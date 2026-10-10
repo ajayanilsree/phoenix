@@ -51,12 +51,11 @@
         <p><span>Discounted Subtotal</span><strong>₹{{ summary.discounted_subtotal }}</strong></p>
       {% endif %}
       {% if summary.is_agent %}<div class="promo-form"><label for="redeem-points">Redeemable Points: {{ summary.available_points|floatformat:2 }} pts (₹{{ summary.available_points|floatformat:2 }})</label><div><input id="redeem-points" name="redeem_points" type="number" min="0" max="{{ summary.available_points }}" step="0.01" value="{{ summary.wallet_points_redeemed|floatformat:2 }}" placeholder="Points to redeem"><button class="btn btn-secondary compact-btn" type="submit" name="action" value="apply_points">Apply</button></div></div>{% if summary.wallet_discount_amount %}<p class="discount-line"><span>Wallet points</span><strong>-₹{{ summary.wallet_discount_amount }}</strong></p>{% endif %}{% endif %}
-      <p><span>Delivery</span><em>Requires rule</em></p>
-      <p><span>Tax</span><em>Requires rule</em></p>
+      <p><span>Delivery</span><strong data-shipping-amount>{% if summary.shipping_error %}Unavailable{% else %}₹{{ summary.delivery_charge }}{% endif %}</strong></p>
       <hr>
-      <p><span>Grand Total</span><strong>₹{{ summary.grand_total }}</strong></p>
+      <p><span>Grand Total</span><strong data-grand-total>₹{{ summary.grand_total }}</strong></p>
       </aside>
-      <button class="btn btn-primary place-order-button" type="submit" name="action" value="place_order">Place Order</button>
+      <button class="btn btn-primary place-order-button" type="submit" name="action" value="place_order"{% if summary.shipping_error or not summary.delivery_charge %} disabled{% endif %}>{% if summary.shipping_error or not summary.delivery_charge %}Delivery unavailable{% else %}Place Order{% endif %}</button>
     </div>
   </form>
 </section>
@@ -65,6 +64,40 @@
     const form = document.querySelector("form.checkout-layout");
     const button = form?.querySelector("button[name=action][value=place_order]");
     const promoButton = form?.querySelector("[data-apply-promo]");
+    const postalCode = form?.querySelector("[name=postal_code]");
+    const shippingAmount = document.querySelector("[data-shipping-amount]");
+    const grandTotal = document.querySelector("[data-grand-total]");
+    const shippingError = {{ summary.shipping_error|yesno:"true,false" }};
+    let quoteRequest = 0;
+    let quoteTimer;
+    const calculateShipping = () => {
+      clearTimeout(quoteTimer);
+      const pin = postalCode?.value.trim() || "";
+      if (!/^\d{6}$/.test(pin)) {
+        if (shippingAmount) shippingAmount.textContent = "Enter PIN code";
+        if (button) button.disabled = true;
+        return;
+      }
+      quoteTimer = setTimeout(async () => {
+        const current = ++quoteRequest;
+        if (shippingAmount) shippingAmount.textContent = "Calculating...";
+        if (button) button.disabled = true;
+        try {
+          const response = await fetch("{% url 'shipping_quote' %}", {method: "POST", headers: {"X-CSRFToken": form.querySelector("[name=csrfmiddlewaretoken]").value, "Content-Type": "application/x-www-form-urlencoded"}, body: new URLSearchParams({postal_code: pin})});
+          const data = await response.json();
+          if (current !== quoteRequest) return;
+          if (!response.ok || !data.success) throw new Error(data.message || "Unable to calculate delivery charges.");
+          if (shippingAmount) shippingAmount.textContent = `₹${data.amount}`;
+          if (grandTotal) grandTotal.textContent = `₹${(Number({{ summary.grand_total }}) - Number({{ summary.delivery_charge }}) + Number(data.amount)).toFixed(2)}`;
+          if (button) { button.disabled = false; button.textContent = "Place Order"; }
+        } catch (error) {
+          if (shippingAmount) shippingAmount.textContent = "Unavailable";
+          if (button) { button.disabled = true; button.textContent = "Delivery unavailable"; }
+        }
+      }, 450);
+    };
+    postalCode?.addEventListener("input", calculateShipping);
+    if (shippingError && button) button.disabled = true;
     promoButton?.addEventListener("click", () => {
       const action = document.createElement("input");
       action.type = "hidden";

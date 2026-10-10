@@ -56,6 +56,11 @@ class ProductManageForm(forms.ModelForm):
             "features",
         "applications",
             "variant_type",
+            "pickup_pincode",
+            "package_weight_kg",
+            "package_length_cm",
+            "package_breadth_cm",
+            "package_height_cm",
         ]
         labels = {
             "hsn_code": "HSN Code",
@@ -66,6 +71,11 @@ class ProductManageForm(forms.ModelForm):
             "subpromo_price": "Sub Promo Price",
             "agent_redeem_percentage": "Agent Redeem Percentage (%)",
             "gst_rate": "GST Rate (%)",
+            "pickup_pincode": "Pickup Pincode",
+            "package_weight_kg": "Package Weight (kg)",
+            "package_length_cm": "Length (cm)",
+            "package_breadth_cm": "Breadth (cm)",
+            "package_height_cm": "Height (cm)",
         }
         widgets = {
             "full_description": forms.Textarea(attrs={"rows": 5}),
@@ -132,6 +142,9 @@ class ProductManageForm(forms.ModelForm):
             self.add_error("subcategory", "Select a subcategory that belongs to the selected category.")
         if cleaned.get("variant_type") != Product.VARIANT_NONE and not cleaned.get("variant_count"):
             self.add_error("variant_count", "Enter the number of variants.")
+        dimensions = [cleaned.get(field) for field in ("package_length_cm", "package_breadth_cm", "package_height_cm")]
+        if any(value is not None for value in dimensions) and not all(value is not None for value in dimensions):
+            self.add_error("package_length_cm", "Enter length, breadth and height together.")
         return cleaned
 
     def save(self, commit=True):
@@ -149,8 +162,8 @@ class ProductManageForm(forms.ModelForm):
 class ProductVariantForm(forms.ModelForm):
     class Meta:
         model = ProductVariant
-        fields = ["name", "description", "sku", "hsn_code", "size", "thickness", "colour", "finish", "unit_type", "original_price", "selling_price", "promo_price", "subpromo_price", "agent_redeem_percentage", "gst_rate", "stock", "low_stock_threshold"]
-        labels = {"name": "Variant Name", "description": "Variant Product Description", "hsn_code": "HSN Code", "colour": "Color", "unit_type": "Unit Type", "original_price": "Original Price", "selling_price": "Discount Price / Selling Price", "gst_rate": "GST Rate (%)"}
+        fields = ["name", "description", "sku", "hsn_code", "size", "thickness", "colour", "finish", "unit_type", "original_price", "selling_price", "promo_price", "subpromo_price", "agent_redeem_percentage", "gst_rate", "stock", "low_stock_threshold", "pickup_pincode", "package_weight_kg", "package_length_cm", "package_breadth_cm", "package_height_cm"]
+        labels = {"name": "Variant Name", "description": "Variant Product Description", "hsn_code": "HSN Code", "colour": "Color", "unit_type": "Unit Type", "original_price": "Original Price", "selling_price": "Discount Price / Selling Price", "gst_rate": "GST Rate (%)", "pickup_pincode": "Pickup Pincode", "package_weight_kg": "Package Weight (kg)", "package_length_cm": "Length (cm)", "package_breadth_cm": "Breadth (cm)", "package_height_cm": "Height (cm)"}
         widgets = {"description": forms.Textarea(attrs={"rows": 3, "placeholder": "Describe this variant..."})}
 
     def __init__(self, *args, **kwargs):
@@ -191,6 +204,9 @@ class ProductVariantForm(forms.ModelForm):
             self.add_error("subpromo_price", "Sub promo price must be less than or equal to promo price.")
         if original is not None and selling is not None and selling > original:
             self.add_error("selling_price", "Selling price must be less than or equal to original price.")
+        dimensions = [cleaned.get(field) for field in ("package_length_cm", "package_breadth_cm", "package_height_cm")]
+        if any(value is not None for value in dimensions) and not all(value is not None for value in dimensions):
+            self.add_error("package_length_cm", "Enter length, breadth and height together.")
         return cleaned
 
 
